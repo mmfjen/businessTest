@@ -93,7 +93,6 @@
             animation: pulseUrgent 1s infinite;
         }
 
-        /* Кастомный скроллбар для панели ведущего */
         ::-webkit-scrollbar {
             width: 5px;
             height: 5px;
@@ -103,7 +102,6 @@
             border-radius: 9999px;
         }
 
-        /* Гарантируем четкую отрисовку QR-кода внутри контейнеров */
         #admin-mini-qr img,
         #admin-mini-qr canvas,
         #fullscreen-qr-target img,
@@ -117,15 +115,11 @@
 </head>
 <body class="flex items-center justify-center p-0 sm:p-4">
 
-    <!-- Главный мобильный контейнер -->
     <div class="app-shell w-full max-w-[460px] min-h-[100dvh] sm:min-h-[740px] sm:max-h-[880px] sm:rounded-[32px] flex flex-col overflow-hidden relative">
 
-        <!-- =============================================================== -->
-        <!-- 1. СТАРТОВЫЙ ЭКРАН (Минималистичный, без карточек котов)        -->
-        <!-- =============================================================== -->
+        <!-- 1. СТАРТОВЫЙ ЭКРАН -->
         <section id="screen-start" class="flex-1 flex flex-col justify-between px-6 py-7">
             <div>
-                <!-- Верхняя плашка статуса синхронизации -->
                 <div class="flex items-center justify-between mb-6">
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3EEFF] text-[#6C3CE9] text-[11px] font-bold tracking-wide uppercase">
                         Алабуга Политех
@@ -136,17 +130,15 @@
                     </div>
                 </div>
 
-                <!-- Заголовок и краткое описание -->
                 <div class="mb-7">
                     <h1 class="text-[28px] font-extrabold tracking-tight text-gray-900 leading-tight mb-2">
                         Business Cats
                     </h1>
                     <p class="text-sm text-gray-500 leading-relaxed">
-                        Интерактивный бизнес-квиз по механике деловой симуляции. Проверь, сможешь ли ты выстроить прибыльную стратегию и не попасть под санкции рынка.
+                        Интерактивный бизнес-квиз по механике деловой симуляции. Проверь, сможешь ли ты грамотно распределить капитал и дожить до ключевых сезонов.
                     </p>
                 </div>
 
-                <!-- Переключатель режима входа (Комната с ведущим / Соло) -->
                 <div class="p-1 rounded-2xl bg-[#F4F2FA] grid grid-cols-2 gap-1 mb-5">
                     <button type="button" id="tab-mode-room" onclick="switchEntryMode('room')"
                         class="py-2.5 px-3 rounded-xl text-xs font-bold bg-white text-gray-900 shadow-sm transition">
@@ -158,7 +150,6 @@
                     </button>
                 </div>
 
-                <!-- Форма входа -->
                 <div class="space-y-3.5">
                     <div>
                         <label for="input-nickname" class="block text-xs font-bold text-gray-700 mb-1.5">
@@ -178,7 +169,6 @@
                             class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-[#FAFAFC] text-base font-extrabold tracking-[0.25em] text-gray-900 placeholder-gray-300 focus:outline-none focus:bg-white focus:border-[#6C3CE9] transition">
                     </div>
 
-                    <!-- Сообщение об ошибке валидации/доступа -->
                     <div id="entry-error-box" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600"></div>
 
                     <button type="button" id="btn-start-submit" onclick="handleStartSubmit()"
@@ -191,9 +181,8 @@
                 </div>
             </div>
 
-            <!-- Нижняя кнопка входа для организатора/ведущего -->
             <div class="pt-6 border-t border-gray-100 flex items-center justify-between">
-                <span class="text-[11px] text-gray-400 font-medium">8 бизнес-кейсов • Live-режим</span>
+                <span class="text-[11px] text-gray-400 font-medium">4 бизнес-вопроса • Live-режим</span>
                 <button type="button" onclick="openAdminModal()"
                     class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-[#6C3CE9] transition py-1.5 px-2.5 rounded-xl hover:bg-[#F3EEFF]">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -205,9 +194,7 @@
             </div>
         </section>
 
-        <!-- =============================================================== -->
-        <!-- 2. ЭКРАН ОЖИДАНИЯ В ЛОББИ (LIVE-КОМНАТА)                        -->
-        <!-- =============================================================== -->
+        <!-- 2. ЭКРАН ОЖИДАНИЯ В ЛОББИ -->
         <section id="screen-lobby" class="hidden flex-1 flex flex-col justify-between px-6 py-7">
             <div>
                 <div class="flex items-center justify-between mb-6">
@@ -242,11 +229,8 @@
             </div>
         </section>
 
-        <!-- =============================================================== -->
-        <!-- 3. ЭКРАН ВОПРОСА (СВЕТЛЫЙ МОБИЛЬНЫЙ UI КАК НА РЕФЕРЕНСЕ)        -->
-        <!-- =============================================================== -->
+        <!-- 3. ЭКРАН ВОПРОСА -->
         <section id="screen-quiz" class="hidden flex-1 flex flex-col">
-            <!-- Верхняя шапка -->
             <div class="bg-white sticky top-0 z-10">
                 <div class="px-5 pt-5 pb-3.5 flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2.5 min-w-0">
@@ -261,7 +245,6 @@
                         </div>
                     </div>
 
-                    <!-- Плашка таймера -->
                     <div id="timer-pill" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-[#F9F8FD] text-xs font-bold text-gray-800 transition-colors shrink-0">
                         <svg class="w-3.5 h-3.5 text-[#6C3CE9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                             <circle cx="12" cy="12" r="9"/>
@@ -271,26 +254,22 @@
                     </div>
                 </div>
 
-                <!-- Фиолетовая линия прогресса -->
                 <div class="w-full h-[3px] bg-gray-100">
-                    <div id="quiz-progress-bar" class="progress-fill h-full bg-[#6C3CE9]" style="width: 12.5%"></div>
+                    <div id="quiz-progress-bar" class="progress-fill h-full bg-[#6C3CE9]" style="width: 25%"></div>
                 </div>
             </div>
 
-            <!-- Тело вопроса и варианты ответа -->
             <div class="flex-1 px-5 py-4 overflow-y-auto">
                 <div id="q-counter-row" class="text-xs font-bold text-[#6C3CE9] mb-1.5">
-                    Вопрос <span id="q-current-num">1</span> из <span id="q-total-num">8</span>
+                    Вопрос <span id="q-current-num">1</span> из <span id="q-total-num">4</span>
                 </div>
 
                 <h2 id="q-title" class="text-[17px] sm:text-[18px] font-bold text-gray-900 leading-snug mb-4">
                     Текст вопроса
                 </h2>
 
-                <!-- Список из 4 вариантов -->
                 <div id="q-options-list" class="space-y-2.5"></div>
 
-                <!-- Кнопка подтверждения ответа СРАЗУ под вариантами (без прокрутки вниз) -->
                 <div id="quiz-action-wrap" class="mt-5">
                     <button type="button" id="btn-quiz-next" onclick="handleConfirmAnswer()" disabled
                         class="w-full py-3.5 px-5 rounded-2xl bg-[#6C3CE9] hover:bg-[#5A2BD6] disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none text-white text-sm font-bold shadow-lg shadow-[#6C3CE9]/25 transition flex items-center justify-center gap-2">
@@ -301,7 +280,6 @@
                     </button>
                 </div>
 
-                <!-- Плашка после ответа в Live-режиме (без раскрытия ответа и объяснения) -->
                 <div id="live-locked-notice" class="hidden mt-5 p-4 rounded-2xl bg-[#F3EEFF] border border-[#DDD6FE] text-center">
                     <div class="text-xs font-extrabold text-[#6C3CE9] mb-1">Ответ зафиксирован!</div>
                     <p class="text-xs text-gray-600 leading-relaxed">
@@ -311,9 +289,7 @@
             </div>
         </section>
 
-        <!-- =============================================================== -->
-        <!-- 4. ЭКРАН РЕЗУЛЬТАТОВ                                            -->
-        <!-- =============================================================== -->
+        <!-- 4. ЭКРАН РЕЗУЛЬТАТОВ -->
         <section id="screen-result" class="hidden flex-1 flex flex-col justify-between px-6 py-7 overflow-y-auto">
             <div>
                 <div class="flex items-center justify-between mb-5">
@@ -331,7 +307,7 @@
                     </div>
                     <div class="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
                         <span class="text-gray-300">Верных бизнес-решений:</span>
-                        <span id="result-correct-count" class="font-extrabold text-white">0 из 8</span>
+                        <span id="result-correct-count" class="font-extrabold text-white">0 из 4</span>
                     </div>
                 </div>
 
@@ -351,11 +327,8 @@
             </div>
         </section>
 
-        <!-- =============================================================== -->
-        <!-- 5. ПАНЕЛЬ ВЕДУЩЕГО (АДМИНКА + НАСТРОЙКИ КОМНАТЫ)                -->
-        <!-- =============================================================== -->
+        <!-- 5. ПАНЕЛЬ ВЕДУЩЕГО -->
         <section id="screen-admin" class="hidden flex-1 flex flex-col overflow-hidden">
-            <!-- Шапка админки -->
             <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                 <div>
                     <h2 class="text-base font-extrabold text-gray-900">Панель ведущего</h2>
@@ -367,10 +340,7 @@
                 </button>
             </div>
 
-            <!-- Прокручиваемое содержимое админки -->
             <div class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-
-                <!-- Блок кода комнаты, QR-приглашения и создания -->
                 <div class="p-4 rounded-2xl bg-[#111827] text-white">
                     <div class="flex items-center justify-between gap-3">
                         <div class="min-w-0 flex-1">
@@ -390,7 +360,6 @@
                             </div>
                         </div>
 
-                        <!-- Превью QR-кода комнаты -->
                         <div id="admin-qr-preview-wrap" class="hidden shrink-0 flex flex-col items-center">
                             <button type="button" onclick="openFullscreenQrModal()" title="Открыть QR на весь экран"
                                 class="w-[78px] h-[78px] p-1.5 rounded-2xl bg-white shadow-md hover:scale-105 transition cursor-pointer">
@@ -399,7 +368,6 @@
                         </div>
                     </div>
 
-                    <!-- Кнопка вывода QR на проектор / экран -->
                     <button type="button" id="btn-fullscreen-qr" onclick="openFullscreenQrModal()"
                         class="hidden mt-3 w-full py-2.5 px-3.5 rounded-xl bg-white text-gray-900 hover:bg-gray-100 text-xs font-extrabold transition flex items-center justify-center gap-2 shadow-sm">
                         <svg class="w-4 h-4 text-[#6C3CE9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -416,7 +384,6 @@
                     </div>
                 </div>
 
-                <!-- Пульт управления вопросами (появляется когда комната создана) -->
                 <div id="host-controls-box" class="hidden space-y-4">
                     <div class="p-3.5 rounded-2xl bg-white border border-gray-200">
                         <div class="flex items-center justify-between text-xs mb-2.5">
@@ -440,7 +407,6 @@
                         </div>
                     </div>
 
-                    <!-- Шпаргалка ведущего по текущему вопросу -->
                     <div id="host-speaker-card" class="hidden p-4 rounded-2xl bg-[#F3EEFF] border border-[#DDD6FE] space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#6C3CE9]">
@@ -458,7 +424,6 @@
                         <p id="host-speaker-note" class="text-[11px] text-gray-700 leading-relaxed"></p>
                     </div>
 
-                    <!-- НАСТРОЙКИ КОМНАТЫ -->
                     <div class="p-4 rounded-2xl bg-[#F9F8FD] border border-gray-200/90 space-y-3.5">
                         <div class="flex items-center justify-between">
                             <div>
@@ -470,7 +435,6 @@
                             </span>
                         </div>
 
-                        <!-- Длительность таймера -->
                         <div>
                             <div class="flex items-center justify-between text-xs font-semibold text-gray-700 mb-1.5">
                                 <label for="setting-timer-seconds">Время на ответ (сек)</label>
@@ -498,7 +462,6 @@
                             </div>
                         </div>
 
-                        <!-- Переключатели правил -->
                         <div class="pt-2 border-t border-gray-200/70 space-y-2.5">
                             <label class="flex items-start justify-between gap-2.5 cursor-pointer">
                                 <div>
@@ -542,7 +505,6 @@
                         </div>
                     </div>
 
-                    <!-- Список участников комнаты -->
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-500">Участники комнаты</h4>
@@ -552,7 +514,6 @@
                     </div>
                 </div>
 
-                <!-- Статистика соло-прохождений -->
                 <div class="pt-3 border-t border-gray-100">
                     <div class="flex items-center justify-between mb-2">
                         <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-500">
@@ -567,9 +528,7 @@
             </div>
         </section>
 
-        <!-- =============================================================== -->
-        <!-- МОДАЛЬНОЕ ОКНО ВВОДА PIN-КОДА ВЕДУЩЕГО (ПАРОЛЬ: 3781)           -->
-        <!-- =============================================================== -->
+        <!-- МОДАЛЬНОЕ ОКНО PIN-КОДА ВЕДУЩЕГО (3781) -->
         <div id="modal-admin-pin" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
             <div class="bg-white rounded-3xl w-full max-w-[340px] p-6 shadow-2xl">
                 <h3 class="text-lg font-extrabold text-gray-900 mb-1">Вход для ведущего</h3>
@@ -590,9 +549,7 @@
             </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ВЫХОДА ИЗ ИГРЫ                     -->
-        <!-- =============================================================== -->
+        <!-- МОДАЛЬНОЕ ОКНО ВЫХОДА -->
         <div id="modal-exit-confirm" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
             <div class="bg-white rounded-3xl w-full max-w-[340px] p-6 shadow-2xl">
                 <h3 class="text-base font-extrabold text-gray-900 mb-1.5">Выйти из текущего квиза?</h3>
@@ -610,9 +567,7 @@
             </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- ПОЛНОЭКРАННЫЙ МОДАЛЬНЫЙ QR-КОД ДЛЯ ПРОЕКТОРА И ПРЕЗЕНТАЦИИ      -->
-        <!-- =============================================================== -->
+        <!-- ПОЛНОЭКРАННЫЙ QR-КОД ДЛЯ ПРОЕКТОРА -->
         <div id="modal-fullscreen-qr" class="hidden fixed inset-0 z-50 bg-[#0F111A]/95 backdrop-blur-md flex flex-col items-center justify-center p-5 text-white">
             <div class="w-full max-w-[440px] bg-white text-gray-900 rounded-[32px] p-6 sm:p-8 shadow-2xl text-center relative">
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3EEFF] text-[#6C3CE9] text-xs font-extrabold uppercase tracking-wider mb-3">
@@ -626,12 +581,10 @@
                     Открой ссылку на телефоне и введи своё имя для входа в игру
                 </p>
 
-                <!-- Крупный контрастный QR-код -->
                 <div class="w-[230px] h-[230px] sm:w-[260px] sm:h-[260px] mx-auto p-3.5 rounded-3xl bg-white border-2 border-gray-200 shadow-inner flex items-center justify-center mb-5">
                     <div id="fullscreen-qr-target" class="w-full h-full"></div>
                 </div>
 
-                <!-- Крупный код комнаты для ручного ввода -->
                 <div class="p-3.5 rounded-2xl bg-[#F6F4FF] border border-[#DDD6FE] mb-4">
                     <div class="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">
                         Или введи код комнаты вручную
@@ -641,7 +594,6 @@
                     </div>
                 </div>
 
-                <!-- Живой счётчик подключившихся участников -->
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-xs sm:text-sm font-bold text-emerald-800 mb-5">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>Подключилось участников: <span id="fullscreen-qr-players-count" class="font-extrabold">0</span></span>
@@ -690,104 +642,54 @@
         }
 
         // =========================================================================
-        // 2. ВОПРОСЫ ПО МЕХАНИКЕ BUSINESS CATS (АЛАБУГА ПОЛИТЕХ)
+        // 2. ОБНОВЛЁННЫЕ ВОПРОСЫ ПО МЕХАНИКЕ BUSINESS CATS
         // =========================================================================
         const QUESTIONS = [
             {
-                question: "Раунд только начался, на бирже 4 окраса: белый, чёрный, рыжий и серый коты. Как формируются их цены в начале игры?",
+                question: "У вас 56 монет. Как вы поступите с монетами в начале игры?",
                 options: [
-                    "Цены на цвета раскидываются случайно — каждый раунд лидирует свой окрас",
-                    "Чёрный кот всегда самый дорогой, а серый — самый дешёвый",
-                    "Все 4 окраса стоят одинаково до самой последней минуты",
-                    "Цена зависит только от того, сколько котов купили в прошлом раунде"
+                    "Купить двух дорогих котов, остаться с 24 монетами и обеспечить себя до 5 сезона",
+                    "Купить двух дешёвых котят и оставить себе 43 монеты"
                 ],
                 correctIndex: 0,
-                points: 200,
-                speakerNote: "В Business Cats нет «вечно дорогого» цвета: в начале сессии ценность белого, чёрного, рыжего и серого котиков распределяется рандомно. Нужно сразу смотреть котировки."
+                points: 250,
+                speakerNote: "Правильный выбор — купить дорогих котят: оставшихся 24 монет ровно хватает, чтобы прокормить пару в питомнике до 5 сезона и выйти в хорошую прибыль."
             },
             {
-                question: "Друг в соседней команде проигрывает и просит продать ему твоего кота за 1 монету (или купить его за 1000). Что будет за такую сделку?",
+                question: "Сколько питомник требует денег, чтобы дожить до 5 сезона с 1 парой котят?",
                 options: [
-                    "Ничего, это свободный рынок и командная взаимопомощь",
-                    "Жёсткий штраф и блокировка за «перелив» баланса",
-                    "Система начислит бонус за рекордную сделку на бирже",
-                    "Сделка пройдёт, но комиссия составит 10%"
+                    "12 монет",
+                    "24 монеты",
+                    "36 монет",
+                    "43 монеты"
                 ],
                 correctIndex: 1,
                 points: 250,
-                speakerNote: "Переливы капитала через аномальные цены (1 монета или 1000 монет) строго запрещены правилами симуляции и караются аннулированием баланса/баном."
+                speakerNote: "Для содержания питомника с одной парой котят до 5 сезона требуется ровно 24 монеты."
             },
             {
-                question: "Ты скупил редких рыжих и белых котов по выгодной цене, но забыл закупить корм на склад. Что произойдёт дальше?",
+                question: "Сколько монет нужно, чтобы дожить до 5 сезона за магазин?",
                 options: [
-                    "Коты просто перестанут приносить потомство, но сохранят цену",
-                    "Ничего страшного, в конце раунда они всё равно продадутся по рынку",
-                    "Голодные коты теряют здоровье и резко падают в рыночной стоимости",
-                    "Система автоматически купит корм в кредит без процентов"
-                ],
-                correctIndex: 2,
-                points: 200,
-                speakerNote: "Корм и здоровье — базовый операционный расход. Голодный кот теряет кондицию, и продать его по пиковой цене уже не выйдет."
-            },
-            {
-                question: "На бирже резкий скачок спроса на чёрных котов, а у тебя есть пара подходящих особей и запас корма. Какая стратегия принесёт максимум?",
-                options: [
-                    "Скрестить их для получения потомства и продавать на волне спроса",
-                    "Держать всех котов до финального гонга, чтобы получить бонус за коллекцию",
-                    "Срочно обменять чёрных котов на самых дешёвых серых 1 к 1",
-                    "Перестать кормить, чтобы сэкономить бюджет на закупку"
+                    "5 монет",
+                    "15 монет",
+                    "24 монеты",
+                    "32 монеты"
                 ],
                 correctIndex: 0,
-                points: 200,
-                speakerNote: "Селекция (разведение) в момент высокого спроса позволяет мультиплицировать капитал, пока цена на нужный окрас держится наверху."
-            },
-            {
-                question: "До конца раунда остаётся 40 секунд, а у тебя в питомнике сидят 6 дорогих котов разных цветов. Твои действия?",
-                options: [
-                    "Оставить их на следующий раунд — они перейдут в инвентарь",
-                    "Срочно распродать всех котов в живой кэш, даже с небольшой скидкой",
-                    "Поставить максимальную цену 999 монет и ждать чуда",
-                    "Слить всех котов другу по 1 монете на хранение"
-                ],
-                correctIndex: 1,
                 points: 250,
-                speakerNote: "Главное правило финала Business Cats: в зачёт идёт только живой кэш на счету. Непроданные коты на момент окончания раунда сгорают."
+                speakerNote: "При игре за магазин на содержание до 5 сезона требуется всего 5 монет."
             },
             {
-                question: "Игрок предлагает тебе сделку: «Продай мне белого кота ниже рынка, а я потом верну тебе разницу через покупку серого втридорога». Как поступить?",
+                question: "Какие основные сезоны, когда появляются коты?",
                 options: [
-                    "Согласиться — это отличная схема обхода рыночных цен",
-                    "Отказаться: это скрытый перелив и риск потерять всю кассу из-за кидка",
-                    "Согласиться, если он пообещает в чате",
-                    "Продать за 1 монету, чтобы быстрее закрыть сделку"
-                ],
-                correctIndex: 1,
-                points: 200,
-                speakerNote: "Во-первых, это классическая схема перелива (нарушение правил), во-вторых — в жёстких переговорах устные обещания «потом доплатить» часто заканчиваются обманом."
-            },
-            {
-                question: "Цена на серых котов упала до минимума, но аналитика показывает скорый разворот тренда вверх. У тебя свободна половина бюджета. Что разумнее?",
-                options: [
-                    "Закупить серых котов на просадке на часть капитала, оставив резерв на корм",
-                    "Потратить 100% денег до нуля на серых котов",
-                    "Вообще не торговать до конца игры, чтобы не рисковать",
-                    "Купить самых дорогих белых котов на хаях"
-                ],
-                correctIndex: 0,
-                points: 200,
-                speakerNote: "Покупка на дне рынка с обязательным резервом на корм (защита от кассового разрыва) — основа грамотного риск-менеджмента."
-            },
-            {
-                question: "Какие навыки в первую очередь оценивает отборочная комиссия «Алабуга Политех» по итогам твоей игры в Business Cats?",
-                options: [
-                    "Только скорость кликов мышкой по экрану",
-                    "Умение обходить правила и договариваться о переливах",
-                    "Финансовую грамотность, стрессоустойчивость и ведение переговоров",
-                    "Знание реальных фелинологических стандартов пород кошек"
+                    "2 - 4 - 6",
+                    "3 - 6 - 8",
+                    "5 - 7 - 9",
+                    "4 - 8 - 10"
                 ],
                 correctIndex: 2,
                 points: 250,
-                speakerNote: "Business Cats — это стресс-тест предпринимательского мышления: умение считать маржу, управлять ресурсами в дефиците времени и вести экологичные переговоры."
+                speakerNote: "Основные сезоны появления котов в игре — 5, 7 и 9 сезоны."
             }
         ];
 
@@ -839,8 +741,7 @@
 
         const DEVICE_ID = getDeviceId();
 
-        // Состояние игрока
-        let entryMode = "room"; // "room" | "solo"
+        let entryMode = "room";
         let playerNickname = "";
         let activeRoomCode = "";
         let currentQuestionIdx = 0;
@@ -855,7 +756,6 @@
         let roomListenerRef = null;
         let banListenerRef = null;
 
-        // Состояние ведущего
         let currentHostRoomCode = localStorage.getItem("bc_host_room_code") || "";
         let hostRoomRef = null;
         let hostTimerInterval = null;
@@ -956,7 +856,6 @@
         }
 
         async function restoreSessionOnLoad() {
-            // Автозаполнение кода комнаты из URL (?room=1234)
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get("room");
             if (roomParam && /^\d{4}$/.test(roomParam)) {
@@ -966,14 +865,12 @@
 
             if (!db) return;
 
-            // Если была открыта сессия ведущего
             const isHostActive = localStorage.getItem("bc_host_session_active") === "1";
             if (isHostActive) {
                 openAdminPanelDirectly();
                 return;
             }
 
-            // Если участник обновил страницу во время игры в комнате
             const rawSession = localStorage.getItem("bc_active_session");
             if (!rawSession) return;
 
@@ -1001,7 +898,9 @@
                 playerAnswers = new Array(QUESTIONS.length).fill(null);
                 if (me.answers) {
                     Object.entries(me.answers).forEach(([k, v]) => {
-                        playerAnswers[Number(k)] = v;
+                        if (Number(k) < QUESTIONS.length) {
+                            playerAnswers[Number(k)] = v;
+                        }
                     });
                 }
 
@@ -1077,7 +976,9 @@
                         playerAnswers = new Array(QUESTIONS.length).fill(null);
                         if (existingPlayer.answers) {
                             Object.entries(existingPlayer.answers).forEach(([k, v]) => {
-                                playerAnswers[Number(k)] = v;
+                                if (Number(k) < QUESTIONS.length) {
+                                    playerAnswers[Number(k)] = v;
+                                }
                             });
                         }
                         saveActiveSession({
@@ -1208,7 +1109,9 @@
 
                 if (meRecord.answers) {
                     Object.entries(meRecord.answers).forEach(([k, v]) => {
-                        playerAnswers[Number(k)] = v;
+                        if (Number(k) < QUESTIONS.length) {
+                            playerAnswers[Number(k)] = v;
+                        }
                     });
                 }
 
@@ -1216,7 +1119,7 @@
                     stopQuestionTimer();
                     showScreen("screen-lobby");
                 } else if (room.state === "question") {
-                    const qIdx = room.currentQuestion || 0;
+                    const qIdx = Math.min(room.currentQuestion || 0, QUESTIONS.length - 1);
                     const startedAt = room.questionStartedAt || Date.now();
                     const qDuration = Number.isFinite(Number(room.questionDurationSec))
                         ? Number(room.questionDurationSec)
@@ -1243,7 +1146,7 @@
                         const alreadyAnswered = meRecord.answers && meRecord.answers[qIdx] !== undefined;
                         if (alreadyAnswered) {
                             const prevChoice = meRecord.answers[qIdx];
-                            if (prevChoice >= 0) {
+                            if (prevChoice >= 0 && prevChoice < QUESTIONS[qIdx].options.length) {
                                 selectOption(prevChoice);
                             }
                             lockAllOptions();
@@ -1401,7 +1304,7 @@
         }
 
         // =========================================================================
-        // 9. ПОДТВЕРЖДЕНИЕ ОТВЕТА (БЕЗ РАСКРЫТИЯ ПРАВИЛЬНОГО ВАРИАНТА)
+        // 9. ПОДТВЕРЖДЕНИЕ ОТВЕТА
         // =========================================================================
         async function handleConfirmAnswer() {
             if (selectedOptionIdx === null && !isOptionLocked) return;
@@ -1440,7 +1343,7 @@
             const answersMap = {};
 
             playerAnswers.forEach((ans, idx) => {
-                if (ans !== null && ans !== undefined) {
+                if (ans !== null && ans !== undefined && idx < QUESTIONS.length) {
                     answersMap[idx] = ans;
                     if (ans === QUESTIONS[idx].correctIndex) {
                         score += QUESTIONS[idx].points;
@@ -1692,7 +1595,6 @@
                     console.warn("QRCode.js fallback:", e);
                 }
             }
-            // Надёжный fallback через QR API, если CDN заблокирован
             const img = document.createElement("img");
             img.alt = "QR код комнаты";
             img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&margin=4&data=${encodeURIComponent(url)}`;
@@ -1743,7 +1645,6 @@
             setTimeout(() => hint.classList.add("hidden"), 2500);
         }
 
-        // Настройки комнаты в форме ведущего
         function populateSettingsForm(settings) {
             const s = normalizeRoomSettings(settings);
             document.getElementById("setting-no-timer").checked = s.noTimer;
@@ -1917,7 +1818,7 @@
                 btnFinish.classList.add("hidden");
                 speakerCard.classList.add("hidden");
             } else if (room.state === "question") {
-                const qIdx = room.currentQuestion || 0;
+                const qIdx = Math.min(room.currentQuestion || 0, QUESTIONS.length - 1);
                 const q = QUESTIONS[qIdx];
                 stateLabel.textContent = `Вопрос ${qIdx + 1} из ${QUESTIONS.length}`;
 
@@ -2037,7 +1938,7 @@
                     div.className = "p-2.5 rounded-xl bg-[#F9F8FD] flex items-center justify-between text-xs";
                     div.innerHTML = `
                         <span class="font-bold text-gray-800 truncate">${escapeHtml(item.name)}</span>
-                        <span class="font-extrabold text-[#6C3CE9] shrink-0">${item.score || 0} монет (${item.correctCount || 0}/8)</span>
+                        <span class="font-extrabold text-[#6C3CE9] shrink-0">${item.score || 0} монет (${item.correctCount || 0}/${QUESTIONS.length})</span>
                     `;
                     container.appendChild(div);
                 });
@@ -2049,7 +1950,6 @@
             await db.ref("solo_results").remove();
         }
 
-        // Запуск восстановления сессии при загрузке страницы
         window.addEventListener("load", restoreSessionOnLoad);
     </script>
 </body>
