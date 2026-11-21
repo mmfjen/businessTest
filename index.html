@@ -3,51 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Business Cats — Бизнес-Квиз</title>
+    <title>Business Cats — Интерактивный Бизнес-Квиз • Алабуга Политех</title>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Firebase Compat SDK -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Firebase Realtime Database Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-    <!-- QRCode.js для мгновенной генерации QR-кода комнаты -->
+
+    <!-- QRCode.js для генерации QR-кодов приглашения -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
+        /* =====================================================================
+           БАЗОВЫЕ СТИЛИ И ТОКЕНЫ ОФОРМЛЕНИЯ BUSINESS CATS
+           ===================================================================== */
         * {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
         }
 
-        body {
-            background: linear-gradient(160deg, #F5F3FB 0%, #ECE9F8 50%, #F7F6FC 100%);
+        html, body {
+            margin: 0;
+            padding: 0;
             min-height: 100dvh;
+            background: radial-gradient(circle at 15% 10%, #ECE6FF 0%, #F5F3FB 42%, #EEF1F8 100%);
             color: #111827;
+            overflow-x: hidden;
         }
 
         .app-shell {
             background: #FFFFFF;
-            box-shadow: 0 20px 50px -12px rgba(108, 60, 233, 0.12), 0 4px 16px -2px rgba(17, 24, 39, 0.04);
+            box-shadow:
+                0 24px 60px -15px rgba(108, 60, 233, 0.14),
+                0 8px 24px -4px rgba(17, 24, 39, 0.06);
+            border: 1px solid rgba(229, 231, 235, 0.85);
         }
 
+        /* Карточки вариантов ответа */
         .option-card {
             border: 1.5px solid #E5E7EB;
             background: #FFFFFF;
-            transition: all 0.16s ease;
+            transition: transform 0.14s ease, border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
         }
 
         .option-card:hover:not(.locked) {
             border-color: #C4B5FD;
             background: #FAF8FF;
+            transform: translateY(-1px);
+        }
+
+        .option-card:active:not(.locked) {
+            transform: scale(0.99);
         }
 
         .option-card.selected {
             border-color: #6C3CE9;
-            background: linear-gradient(90deg, #F3EEFF 0%, #F8F5FF 100%);
-            box-shadow: 0 4px 14px -2px rgba(108, 60, 233, 0.16);
+            background: linear-gradient(100deg, #F3EEFF 0%, #F9F7FF 100%);
+            box-shadow: 0 6px 18px -4px rgba(108, 60, 233, 0.2);
         }
 
         .option-card.locked {
@@ -59,6 +79,19 @@
             opacity: 1;
         }
 
+        .option-card.correct-review {
+            border-color: #10B981 !important;
+            background: #ECFDF5 !important;
+            opacity: 1 !important;
+        }
+
+        .option-card.wrong-review {
+            border-color: #EF4444 !important;
+            background: #FEF2F2 !important;
+            opacity: 1 !important;
+        }
+
+        /* Кастомный радио-индикатор внутри варианта */
         .radio-dot {
             width: 22px;
             height: 22px;
@@ -77,10 +110,12 @@
             background: #6C3CE9;
         }
 
+        /* Прогресс-бар */
         .progress-fill {
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* Пульсация таймера при остатке <= 10 сек */
         @keyframes pulseUrgent {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.04); }
@@ -88,20 +123,82 @@
 
         .timer-urgent {
             background: #FEF2F2 !important;
-            border-color: #FECACA !important;
+            border-color: #FCA5A5 !important;
             color: #DC2626 !important;
-            animation: pulseUrgent 1s infinite;
+            animation: pulseUrgent 0.95s infinite;
         }
 
+        /* Кастомные переключатели (toggle switch) для настроек комнаты */
+        .setting-toggle {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            width: 44px;
+            height: 24px;
+            border-radius: 9999px;
+            background-color: #D1D5DB;
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+            flex-shrink: 0;
+            border: none;
+            padding: 2px;
+        }
+
+        .setting-toggle.active {
+            background-color: #6C3CE9;
+        }
+
+        .setting-toggle-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            background-color: #FFFFFF;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(0);
+        }
+
+        .setting-toggle.active .setting-toggle-thumb {
+            transform: translateX(20px);
+        }
+
+        /* Ползунок длительности таймера */
+        input[type="range"].timer-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 7px;
+            border-radius: 9999px;
+            background: #E5E7EB;
+            outline: none;
+        }
+
+        input[type="range"].timer-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            background: #6C3CE9;
+            border: 3px solid #FFFFFF;
+            box-shadow: 0 2px 6px rgba(108, 60, 233, 0.4);
+            cursor: pointer;
+        }
+
+        /* Аккуратный скроллбар */
         ::-webkit-scrollbar {
             width: 5px;
             height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
         }
         ::-webkit-scrollbar-thumb {
             background: #DDD6FE;
             border-radius: 9999px;
         }
 
+        /* Адаптация сгенерированного QR-кода под контейнеры */
         #admin-mini-qr img,
         #admin-mini-qr canvas,
         #fullscreen-qr-target img,
@@ -109,19 +206,24 @@
             display: block;
             width: 100% !important;
             height: 100% !important;
+            object-fit: contain;
             border-radius: 8px;
         }
     </style>
 </head>
 <body class="flex items-center justify-center p-0 sm:p-4">
 
-    <div class="app-shell w-full max-w-[460px] min-h-[100dvh] sm:min-h-[740px] sm:max-h-[880px] sm:rounded-[32px] flex flex-col overflow-hidden relative">
+    <!-- ГЛАВНЫЙ КОНТЕЙНЕР ПРИЛОЖЕНИЯ -->
+    <div class="app-shell w-full max-w-[480px] min-h-[100dvh] sm:min-h-[760px] sm:max-h-[92dvh] sm:rounded-[32px] flex flex-col overflow-hidden relative">
 
-        <!-- 1. СТАРТОВЫЙ ЭКРАН -->
-        <section id="screen-start" class="flex-1 flex flex-col justify-between px-6 py-7">
+        <!-- =================================================================
+             1. СТАРТОВЫЙ ЭКРАН (МИНИМАЛИСТИЧНЫЙ, БЕЗ КАРТОЧЕК КОТОВ В НАЧАЛЕ)
+             ================================================================= -->
+        <section id="screen-start" class="flex-1 flex flex-col justify-between px-6 py-7 overflow-y-auto">
             <div>
-                <div class="flex items-center justify-between mb-6">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3EEFF] text-[#6C3CE9] text-[11px] font-bold tracking-wide uppercase">
+                <!-- Верхняя плашка: Алабуга Политех + статус синхронизации Firebase -->
+                <div class="flex items-center justify-between gap-2 mb-6">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3EEFF] text-[#6C3CE9] text-[11px] font-extrabold tracking-wide uppercase">
                         Алабуга Политех
                     </span>
                     <div id="firebase-status-pill" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 text-[11px] font-semibold">
@@ -130,15 +232,17 @@
                     </div>
                 </div>
 
-                <div class="mb-7">
-                    <h1 class="text-[28px] font-extrabold tracking-tight text-gray-900 leading-tight mb-2">
+                <!-- Заголовок и краткое описание -->
+                <div class="mb-6">
+                    <h1 class="text-[28px] sm:text-[30px] font-black tracking-tight text-gray-900 leading-tight mb-2">
                         Business Cats
                     </h1>
                     <p class="text-sm text-gray-500 leading-relaxed">
-                        Интерактивный бизнес-квиз по механике деловой симуляции. Проверь, сможешь ли ты грамотно распределить капитал и дожить до ключевых сезонов.
+                        Интерактивный бизнес-квиз по механике деловой симуляции. Распределяй монеты, считай затраты до 5 сезона и следи за ключевыми сезонами.
                     </p>
                 </div>
 
+                <!-- Переключатель режима входа -->
                 <div class="p-1 rounded-2xl bg-[#F4F2FA] grid grid-cols-2 gap-1 mb-5">
                     <button type="button" id="tab-mode-room" onclick="switchEntryMode('room')"
                         class="py-2.5 px-3 rounded-xl text-xs font-bold bg-white text-gray-900 shadow-sm transition">
@@ -150,13 +254,15 @@
                     </button>
                 </div>
 
+                <!-- Форма входа -->
                 <div class="space-y-3.5">
                     <div>
                         <label for="input-nickname" class="block text-xs font-bold text-gray-700 mb-1.5">
                             Твоё имя или никнейм
                         </label>
                         <input type="text" id="input-nickname" maxlength="20" autocomplete="off"
-                            placeholder="Например: Алексей_К"
+                            placeholder="Например: Максим_К"
+                            onkeydown="if(event.key==='Enter') handleStartSubmit()"
                             class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-[#FAFAFC] text-sm font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#6C3CE9] transition">
                     </div>
 
@@ -166,11 +272,14 @@
                         </label>
                         <input type="tel" id="input-room-code" maxlength="4" inputmode="numeric" autocomplete="off"
                             placeholder="0000"
+                            onkeydown="if(event.key==='Enter') handleStartSubmit()"
                             class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-[#FAFAFC] text-base font-extrabold tracking-[0.25em] text-gray-900 placeholder-gray-300 focus:outline-none focus:bg-white focus:border-[#6C3CE9] transition">
                     </div>
 
-                    <div id="entry-error-box" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600"></div>
+                    <!-- Блок вывода ошибок входа -->
+                    <div id="entry-error-box" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600 leading-relaxed"></div>
 
+                    <!-- Кнопка старта -->
                     <button type="button" id="btn-start-submit" onclick="handleStartSubmit()"
                         class="w-full py-4 px-5 rounded-2xl bg-[#111827] hover:bg-black active:scale-[0.99] text-white text-sm font-bold shadow-lg shadow-gray-900/10 transition flex items-center justify-center gap-2 mt-2">
                         <span id="btn-start-label">Войти в комнату</span>
@@ -181,10 +290,11 @@
                 </div>
             </div>
 
-            <div class="pt-6 border-t border-gray-100 flex items-center justify-between">
-                <span class="text-[11px] text-gray-400 font-medium">4 бизнес-вопроса • Live-режим</span>
+            <!-- Нижняя строка: инфо и кнопка открытия панели ведущего -->
+            <div class="pt-6 mt-6 border-t border-gray-100 flex items-center justify-between gap-2">
+                <span class="text-[11px] text-gray-400 font-medium">4 бизнес-вопроса • Синхронизация Live</span>
                 <button type="button" onclick="openAdminModal()"
-                    class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-[#6C3CE9] transition py-1.5 px-2.5 rounded-xl hover:bg-[#F3EEFF]">
+                    class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-[#6C3CE9] transition py-1.5 px-3 rounded-xl hover:bg-[#F3EEFF]">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -194,14 +304,17 @@
             </div>
         </section>
 
-        <!-- 2. ЭКРАН ОЖИДАНИЯ В ЛОББИ -->
-        <section id="screen-lobby" class="hidden flex-1 flex flex-col justify-between px-6 py-7">
+        <!-- =================================================================
+             2. ЭКРАН ОЖИДАНИЯ В ЛОББИ
+             ================================================================= -->
+        <section id="screen-lobby" class="hidden flex-1 flex flex-col justify-between px-6 py-7 overflow-y-auto">
             <div>
                 <div class="flex items-center justify-between mb-6">
                     <span class="px-3 py-1 rounded-full bg-[#F3EEFF] text-[#6C3CE9] text-xs font-extrabold">
                         Комната #<span id="lobby-room-code">0000</span>
                     </span>
-                    <button type="button" onclick="leaveRoomToStart()" class="text-xs font-semibold text-gray-400 hover:text-red-500 transition">
+                    <button type="button" onclick="leaveRoomToStart()"
+                        class="text-xs font-semibold text-gray-400 hover:text-red-500 transition py-1 px-2">
                         Выйти
                     </button>
                 </div>
@@ -213,28 +326,34 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/>
                         </svg>
                     </div>
-                    <h2 class="text-xl font-extrabold text-gray-900 mb-1.5">Ты в игре!</h2>
+                    <h2 class="text-xl font-extrabold text-gray-900 mb-1.5">
+                        Ты в комнате, <span id="lobby-player-nick" class="text-[#6C3CE9]">игрок</span>!
+                    </h2>
                     <p class="text-xs text-gray-500 leading-relaxed mb-4">
-                        Ожидаем, пока ведущий запустит первый вопрос на экране. Не закрывай эту вкладку.
+                        Ожидаем, пока ведущий запустит вопрос на экране. Если случайно обновишь страницу — мы вернём тебя обратно автоматически.
                     </p>
                     <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-gray-700">
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span>Участников в лобби: <span id="lobby-players-count" class="text-[#6C3CE9]">1</span></span>
+                        <span>Участников в комнате: <span id="lobby-players-count" class="text-[#6C3CE9]">1</span></span>
                     </div>
                 </div>
             </div>
 
-            <div class="p-4 rounded-2xl bg-gray-50 text-xs text-gray-500 leading-relaxed">
-                <strong class="text-gray-800">Правило раунда:</strong> после выбора ответа не ищи подсказку на экране — правильную стратегию разберёт ведущий после окончания таймера.
+            <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs text-gray-500 leading-relaxed">
+                <strong class="text-gray-800">Как проходит раунд:</strong> выбери вариант ответа на экране, нажми «Подтвердить ответ» и дождитесь разбора стратегии от ведущего.
             </div>
         </section>
 
-        <!-- 3. ЭКРАН ВОПРОСА -->
-        <section id="screen-quiz" class="hidden flex-1 flex flex-col">
-            <div class="bg-white sticky top-0 z-10">
-                <div class="px-5 pt-5 pb-3.5 flex items-center justify-between gap-2">
+        <!-- =================================================================
+             3. ЭКРАН ПРОХОЖДЕНИЯ ВОПРОСА
+             ================================================================= -->
+        <section id="screen-quiz" class="hidden flex-1 flex flex-col overflow-hidden">
+            <!-- Верхняя шапка таймера и прогресса -->
+            <div class="bg-white border-b border-gray-100 shrink-0">
+                <div class="px-5 pt-4 pb-3 flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2.5 min-w-0">
-                        <button type="button" onclick="confirmExitQuiz()" class="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 shrink-0">
+                        <button type="button" onclick="confirmExitQuiz()" title="Выйти из квиза"
+                            class="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 shrink-0">
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
                             </svg>
@@ -245,6 +364,7 @@
                         </div>
                     </div>
 
+                    <!-- Индикатор таймера -->
                     <div id="timer-pill" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-[#F9F8FD] text-xs font-bold text-gray-800 transition-colors shrink-0">
                         <svg class="w-3.5 h-3.5 text-[#6C3CE9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                             <circle cx="12" cy="12" r="9"/>
@@ -254,13 +374,15 @@
                     </div>
                 </div>
 
+                <!-- Полоса прогресса -->
                 <div class="w-full h-[3px] bg-gray-100">
                     <div id="quiz-progress-bar" class="progress-fill h-full bg-[#6C3CE9]" style="width: 25%"></div>
                 </div>
             </div>
 
+            <!-- Тело вопроса: варианты + кнопка подтверждения сразу под ними (без прижатия к низу экрана) -->
             <div class="flex-1 px-5 py-4 overflow-y-auto">
-                <div id="q-counter-row" class="text-xs font-bold text-[#6C3CE9] mb-1.5">
+                <div id="q-counter-row" class="text-xs font-extrabold text-[#6C3CE9] mb-1.5">
                     Вопрос <span id="q-current-num">1</span> из <span id="q-total-num">4</span>
                 </div>
 
@@ -268,8 +390,10 @@
                     Текст вопроса
                 </h2>
 
+                <!-- Список вариантов ответа -->
                 <div id="q-options-list" class="space-y-2.5"></div>
 
+                <!-- Кнопка отправки ответа прямо под вариантами -->
                 <div id="quiz-action-wrap" class="mt-5">
                     <button type="button" id="btn-quiz-next" onclick="handleConfirmAnswer()" disabled
                         class="w-full py-3.5 px-5 rounded-2xl bg-[#6C3CE9] hover:bg-[#5A2BD6] disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none text-white text-sm font-bold shadow-lg shadow-[#6C3CE9]/25 transition flex items-center justify-center gap-2">
@@ -280,16 +404,25 @@
                     </button>
                 </div>
 
+                <!-- Сообщение после фиксации ответа в режиме комнаты с ведущим -->
                 <div id="live-locked-notice" class="hidden mt-5 p-4 rounded-2xl bg-[#F3EEFF] border border-[#DDD6FE] text-center">
                     <div class="text-xs font-extrabold text-[#6C3CE9] mb-1">Ответ зафиксирован!</div>
                     <p class="text-xs text-gray-600 leading-relaxed">
-                        Слушай разбор ведущего на сцене и жди переключения на следующий вопрос.
+                        Ожидай разбор от ведущего и переход к следующему вопросу.
                     </p>
+                </div>
+
+                <!-- Пояснение после ответа в соло-режиме -->
+                <div id="solo-review-box" class="hidden mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
+                    <div id="solo-review-verdict" class="text-xs font-extrabold"></div>
+                    <p id="solo-review-note" class="text-xs text-gray-600 leading-relaxed"></p>
                 </div>
             </div>
         </section>
 
-        <!-- 4. ЭКРАН РЕЗУЛЬТАТОВ -->
+        <!-- =================================================================
+             4. ЭКРАН РЕЗУЛЬТАТОВ И ТАБЛИЦЫ ЛИДЕРОВ
+             ================================================================= -->
         <section id="screen-result" class="hidden flex-1 flex flex-col justify-between px-6 py-7 overflow-y-auto">
             <div>
                 <div class="flex items-center justify-between mb-5">
@@ -299,21 +432,23 @@
                     <span id="result-player-name" class="text-xs font-bold text-gray-500">Игрок</span>
                 </div>
 
-                <div class="p-6 rounded-3xl bg-gradient-to-br from-[#111827] to-[#1F2937] text-white mb-5 shadow-xl shadow-gray-900/15">
-                    <div class="text-xs font-medium text-gray-300 mb-1">Итоговый капитал</div>
+                <!-- Карточка итогового счёта -->
+                <div class="p-6 rounded-3xl bg-gradient-to-br from-[#111827] via-[#1B1F38] to-[#2A1E5C] text-white mb-5 shadow-xl shadow-gray-900/15">
+                    <div class="text-xs font-medium text-purple-200/80 mb-1">Итоговый результат</div>
                     <div class="flex items-baseline gap-2 mb-3">
-                        <span id="result-score" class="text-4xl font-extrabold tracking-tight">0</span>
-                        <span class="text-sm font-semibold text-purple-300">кото-монет</span>
+                        <span id="result-score" class="text-4xl font-black tracking-tight">0</span>
+                        <span class="text-sm font-semibold text-purple-300">баллов (кото-монет)</span>
                     </div>
                     <div class="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
-                        <span class="text-gray-300">Верных бизнес-решений:</span>
+                        <span class="text-gray-300">Верных ответов:</span>
                         <span id="result-correct-count" class="font-extrabold text-white">0 из 4</span>
                     </div>
                 </div>
 
+                <!-- Рейтинг участников комнаты -->
                 <div id="result-leaderboard-section">
                     <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-500 mb-2.5">
-                        Топ участников
+                        Таблица лидеров комнаты
                     </h3>
                     <div id="result-leaderboard" class="space-y-2"></div>
                 </div>
@@ -327,12 +462,15 @@
             </div>
         </section>
 
-        <!-- 5. ПАНЕЛЬ ВЕДУЩЕГО -->
+        <!-- =================================================================
+             5. ПАНЕЛЬ ВЕДУЩЕГО (АДМИНКА)
+             ================================================================= -->
         <section id="screen-admin" class="hidden flex-1 flex flex-col overflow-hidden">
+            <!-- Шапка админки -->
             <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                 <div>
                     <h2 class="text-base font-extrabold text-gray-900">Панель ведущего</h2>
-                    <p class="text-[11px] text-gray-400">Управление комнатой и статистика</p>
+                    <p class="text-[11px] text-gray-400">Управление комнатой, настройками и вопросами</p>
                 </div>
                 <button type="button" onclick="exitAdminPanel()"
                     class="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition">
@@ -340,12 +478,15 @@
                 </button>
             </div>
 
+            <!-- Прокручиваемый контент админки -->
             <div class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+
+                <!-- Блок комнаты + QR-код приглашения + кнопка проектора -->
                 <div class="p-4 rounded-2xl bg-[#111827] text-white">
                     <div class="flex items-center justify-between gap-3">
                         <div class="min-w-0 flex-1">
                             <div class="text-[11px] text-gray-400 font-medium">Активная комната</div>
-                            <div class="text-2xl font-extrabold tracking-widest text-white mb-2.5">
+                            <div class="text-2xl font-black tracking-widest text-white mb-2.5">
                                 #<span id="admin-room-code">----</span>
                             </div>
                             <div class="flex flex-wrap items-center gap-1.5">
@@ -355,19 +496,22 @@
                                 </button>
                                 <button type="button" id="btn-copy-link" onclick="copyInviteLink()"
                                     class="hidden px-2.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition">
-                                    Ссылка
+                                    Копировать ссылку
                                 </button>
                             </div>
                         </div>
 
+                        <!-- Мини-превью QR-кода -->
                         <div id="admin-qr-preview-wrap" class="hidden shrink-0 flex flex-col items-center">
                             <button type="button" onclick="openFullscreenQrModal()" title="Открыть QR на весь экран"
-                                class="w-[78px] h-[78px] p-1.5 rounded-2xl bg-white shadow-md hover:scale-105 transition cursor-pointer">
+                                class="w-[82px] h-[82px] p-1.5 rounded-2xl bg-white shadow-md hover:scale-105 transition cursor-pointer">
                                 <div id="admin-mini-qr" class="w-full h-full"></div>
                             </button>
+                            <span class="text-[10px] text-gray-400 mt-1">QR комнаты</span>
                         </div>
                     </div>
 
+                    <!-- Кнопка полноэкранного QR для проектора -->
                     <button type="button" id="btn-fullscreen-qr" onclick="openFullscreenQrModal()"
                         class="hidden mt-3 w-full py-2.5 px-3.5 rounded-xl bg-white text-gray-900 hover:bg-gray-100 text-xs font-extrabold transition flex items-center justify-center gap-2 shadow-sm">
                         <svg class="w-4 h-4 text-[#6C3CE9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -380,13 +524,14 @@
                     </button>
 
                     <div id="copy-link-hint" class="hidden mt-2 text-[11px] text-emerald-400 font-semibold">
-                        Ссылка с кодом комнаты скопирована!
+                        Ссылка с кодом комнаты скопирована в буфер обмена!
                     </div>
                 </div>
 
+                <!-- Блок управления ходом игры -->
                 <div id="host-controls-box" class="hidden space-y-4">
-                    <div class="p-3.5 rounded-2xl bg-white border border-gray-200">
-                        <div class="flex items-center justify-between text-xs mb-2.5">
+                    <div class="p-3.5 rounded-2xl bg-white border border-gray-200 space-y-3">
+                        <div class="flex items-center justify-between text-xs">
                             <span class="font-bold text-gray-700" id="host-state-label">Статус: Ожидание в лобби</span>
                             <span class="font-extrabold text-[#6C3CE9]" id="host-timer-label">00:45</span>
                         </div>
@@ -402,118 +547,190 @@
                             </button>
                             <button type="button" id="btn-host-finish" onclick="hostFinishEarly()"
                                 class="hidden py-2.5 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition">
-                                Завершить игру
+                                Завершить / Итоги
+                            </button>
+                        </div>
+
+                        <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+                            <button type="button" onclick="hostResetToLobby()"
+                                class="py-1.5 px-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-[11px] font-bold text-gray-600 transition">
+                                Вернуть в лобби
+                            </button>
+                            <button type="button" onclick="hostClearRoomPlayers()"
+                                class="py-1.5 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 text-[11px] font-bold text-red-600 transition">
+                                Очистить игроков
                             </button>
                         </div>
                     </div>
 
-                    <div id="host-speaker-card" class="hidden p-4 rounded-2xl bg-[#F3EEFF] border border-[#DDD6FE] space-y-2">
-                        <div class="flex items-center justify-between">
+                    <!-- Карточка ведущего: ответ и разбор СКРЫТЫ по умолчанию до клика -->
+                    <div id="host-speaker-card" class="hidden p-4 rounded-2xl bg-[#F3EEFF] border border-[#DDD6FE] space-y-2.5">
+                        <div class="flex items-center justify-between gap-2">
                             <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#6C3CE9]">
-                                Шпаргалка спикера
+                                Карточка раунда для ведущего
                             </span>
                             <span class="text-xs font-extrabold text-gray-800">
                                 Ответили: <span id="host-answered-ratio">0 / 0</span>
                             </span>
                         </div>
-                        <div id="host-q-preview" class="text-xs font-bold text-gray-900"></div>
-                        <div class="p-2.5 rounded-xl bg-white border border-emerald-200 text-xs">
-                            <span class="font-bold text-emerald-700">Верный ответ: </span>
-                            <span id="host-correct-answer" class="font-semibold text-gray-900"></span>
+
+                        <div id="host-q-preview" class="text-xs font-bold text-gray-900 leading-snug"></div>
+
+                        <button type="button" id="btn-host-reveal-answer" onclick="toggleHostAnswerReveal()"
+                            class="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-purple-50 border border-[#C4B5FD] text-[#6C3CE9] text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-2xs">
+                            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            <span id="btn-host-reveal-label">Показать ответ / Раскрыть разбор</span>
+                        </button>
+
+                        <!-- Скрытый спойлер правильного ответа и разбора -->
+                        <div id="host-answer-spoiler" class="hidden space-y-2 pt-1">
+                            <div class="p-2.5 rounded-xl bg-white border border-emerald-200 text-xs">
+                                <span class="font-bold text-emerald-700">Верный ответ: </span>
+                                <span id="host-correct-answer" class="font-bold text-gray-900"></span>
+                            </div>
+                            <p id="host-speaker-note" class="text-[11px] text-gray-700 leading-relaxed bg-white/70 p-2.5 rounded-xl"></p>
                         </div>
-                        <p id="host-speaker-note" class="text-[11px] text-gray-700 leading-relaxed"></p>
                     </div>
 
-                    <div class="p-4 rounded-2xl bg-[#F9F8FD] border border-gray-200/90 space-y-3.5">
+                    <!-- Настройки комнаты (rooms/XXXX/settings) -->
+                    <div class="p-4 rounded-2xl bg-[#F9F8FD] border border-gray-200 space-y-3.5">
                         <div class="flex items-center justify-between">
                             <div>
-                                <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-800">Настройки комнаты</h4>
-                                <p class="text-[11px] text-gray-500">Таймер, доступ и правила защиты</p>
+                                <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-800">
+                                    Настройки комнаты
+                                </h3>
+                                <p class="text-[11px] text-gray-400">Сохраняются в rooms/<span id="settings-room-code-label">----</span>/settings</p>
                             </div>
-                            <span id="room-settings-badge" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#F3EEFF] text-[#6C3CE9]">
+                            <span id="room-settings-badge" class="px-2.5 py-1 rounded-full bg-[#F3EEFF] text-[#6C3CE9] text-[11px] font-extrabold">
                                 45 сек
                             </span>
                         </div>
 
+                        <!-- Пресеты времени -->
                         <div>
-                            <div class="flex items-center justify-between text-xs font-semibold text-gray-700 mb-1.5">
-                                <label for="setting-timer-seconds">Время на ответ (сек)</label>
-                                <label class="inline-flex items-center gap-1.5 cursor-pointer text-[11px] font-semibold text-gray-600">
-                                    <input type="checkbox" id="setting-no-timer" onchange="toggleNoTimerSetting()" class="rounded border-gray-300 text-[#6C3CE9] focus:ring-[#6C3CE9]">
-                                    <span>Без таймера</span>
+                            <div class="text-[11px] font-bold text-gray-600 mb-1.5">Быстрые пресеты таймера</div>
+                            <div class="grid grid-cols-6 gap-1.5">
+                                <button type="button" onclick="applyTimerPreset(15)" class="preset-btn py-1.5 rounded-lg border border-gray-200 bg-white hover:border-[#6C3CE9] text-[11px] font-bold text-gray-700 transition">15с</button>
+                                <button type="button" onclick="applyTimerPreset(30)" class="preset-btn py-1.5 rounded-lg border border-gray-200 bg-white hover:border-[#6C3CE9] text-[11px] font-bold text-gray-700 transition">30с</button>
+                                <button type="button" onclick="applyTimerPreset(45)" class="preset-btn py-1.5 rounded-lg border border-gray-200 bg-white hover:border-[#6C3CE9] text-[11px] font-bold text-gray-700 transition">45с</button>
+                                <button type="button" onclick="applyTimerPreset(60)" class="preset-btn py-1.5 rounded-lg border border-gray-200 bg-white hover:border-[#6C3CE9] text-[11px] font-bold text-gray-700 transition">60с</button>
+                                <button type="button" onclick="applyTimerPreset(90)" class="preset-btn py-1.5 rounded-lg border border-gray-200 bg-white hover:border-[#6C3CE9] text-[11px] font-bold text-gray-700 transition">90с</button>
+                                <button type="button" onclick="applyTimerPreset(120)" class="preset-btn py-1.5 rounded-lg border border-gray-200 bg-white hover:border-[#6C3CE9] text-[11px] font-bold text-gray-700 transition">120с</button>
+                            </div>
+                        </div>
+
+                        <!-- Точная настройка секунд (10..300) + числовое поле -->
+                        <div id="timer-custom-controls" class="space-y-2 bg-white p-3 rounded-xl border border-gray-100">
+                            <div class="flex items-center justify-between gap-2">
+                                <label for="setting-timer-input" class="text-xs font-bold text-gray-700">
+                                    Время на вопрос (10–300 сек)
                                 </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="setting-timer-input" min="10" max="300" value="45"
+                                        oninput="syncTimerFromNumberInput(this.value)"
+                                        class="w-16 px-2 py-1 rounded-lg border border-gray-200 text-xs font-extrabold text-center text-gray-900 focus:outline-none focus:border-[#6C3CE9]">
+                                    <span class="text-[11px] font-semibold text-gray-400">сек</span>
+                                </div>
+                            </div>
+                            <input type="range" id="setting-timer-slider" min="10" max="300" step="5" value="45"
+                                oninput="syncTimerFromSlider(this.value)"
+                                class="timer-slider">
+                        </div>
+
+                        <!-- Переключатели правил комнаты -->
+                        <div class="space-y-2.5 bg-white p-3 rounded-xl border border-gray-100">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-800">Без таймера</div>
+                                    <div class="text-[10px] text-gray-400">Ручное переключение вопросов ведущим</div>
+                                </div>
+                                <button type="button" id="toggle-no-timer" role="switch" aria-checked="false"
+                                    onclick="toggleSwitchControl('toggle-no-timer', onNoTimerToggled)" class="setting-toggle">
+                                    <span class="setting-toggle-thumb"></span>
+                                </button>
                             </div>
 
-                            <div id="timer-presets-row" class="grid grid-cols-6 gap-1.5 mb-2">
-                                <button type="button" onclick="applyTimerPreset(15)" data-preset="15" class="timer-preset-btn py-1.5 rounded-lg border border-gray-200 bg-white text-[11px] font-bold text-gray-700 hover:border-[#6C3CE9] transition">15с</button>
-                                <button type="button" onclick="applyTimerPreset(30)" data-preset="30" class="timer-preset-btn py-1.5 rounded-lg border border-gray-200 bg-white text-[11px] font-bold text-gray-700 hover:border-[#6C3CE9] transition">30с</button>
-                                <button type="button" onclick="applyTimerPreset(45)" data-preset="45" class="timer-preset-btn py-1.5 rounded-lg border border-gray-200 bg-white text-[11px] font-bold text-gray-700 hover:border-[#6C3CE9] transition">45с</button>
-                                <button type="button" onclick="applyTimerPreset(60)" data-preset="60" class="timer-preset-btn py-1.5 rounded-lg border border-gray-200 bg-white text-[11px] font-bold text-gray-700 hover:border-[#6C3CE9] transition">60с</button>
-                                <button type="button" onclick="applyTimerPreset(90)" data-preset="90" class="timer-preset-btn py-1.5 rounded-lg border border-gray-200 bg-white text-[11px] font-bold text-gray-700 hover:border-[#6C3CE9] transition">90с</button>
-                                <button type="button" onclick="applyTimerPreset(120)" data-preset="120" class="timer-preset-btn py-1.5 rounded-lg border border-gray-200 bg-white text-[11px] font-bold text-gray-700 hover:border-[#6C3CE9] transition">120с</button>
+                            <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-50">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-800">Авто-блокировка при 0 сек</div>
+                                    <div class="text-[10px] text-gray-400">Завершать приём ответа при истечении времени</div>
+                                </div>
+                                <button type="button" id="toggle-auto-lock" role="switch" aria-checked="true"
+                                    onclick="toggleSwitchControl('toggle-auto-lock')" class="setting-toggle active">
+                                    <span class="setting-toggle-thumb"></span>
+                                </button>
                             </div>
 
-                            <div id="timer-custom-controls" class="flex items-center gap-2.5">
-                                <input type="range" id="setting-timer-range" min="10" max="300" step="5" value="45"
-                                    oninput="syncTimerInputs(this.value)" class="flex-1 accent-[#6C3CE9] cursor-pointer">
-                                <input type="number" id="setting-timer-seconds" min="10" max="300" value="45"
-                                    oninput="syncTimerInputs(this.value)"
-                                    class="w-20 px-2.5 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-900 text-center focus:outline-none focus:border-[#6C3CE9]">
+                            <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-50">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-800">Разрешить вход после старта</div>
+                                    <div class="text-[10px] text-gray-400">Подключение новых игроков во время раунда</div>
+                                </div>
+                                <button type="button" id="toggle-allow-late" role="switch" aria-checked="true"
+                                    onclick="toggleSwitchControl('toggle-allow-late')" class="setting-toggle active">
+                                    <span class="setting-toggle-thumb"></span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-50">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-800">Анти-мат и защита от дублей</div>
+                                    <div class="text-[10px] text-gray-400">Фильтр нецензурных ников и контроль повторного входа</div>
+                                </div>
+                                <button type="button" id="toggle-strict-protection" role="switch" aria-checked="true"
+                                    onclick="toggleSwitchControl('toggle-strict-protection')" class="setting-toggle active">
+                                    <span class="setting-toggle-thumb"></span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-50">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-800">Показ счётчика вопросов</div>
+                                    <div class="text-[10px] text-gray-400">Отображать «Вопрос X из 4» на экранах игроков</div>
+                                </div>
+                                <button type="button" id="toggle-show-counter" role="switch" aria-checked="true"
+                                    onclick="toggleSwitchControl('toggle-show-counter')" class="setting-toggle active">
+                                    <span class="setting-toggle-thumb"></span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-50">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-800">Показ финального рейтинга</div>
+                                    <div class="text-[10px] text-gray-400">Выводить таблицу лидеров в конце игры</div>
+                                </div>
+                                <button type="button" id="toggle-show-leaderboard" role="switch" aria-checked="true"
+                                    onclick="toggleSwitchControl('toggle-show-leaderboard')" class="setting-toggle active">
+                                    <span class="setting-toggle-thumb"></span>
+                                </button>
                             </div>
                         </div>
 
-                        <div class="pt-2 border-t border-gray-200/70 space-y-2.5">
-                            <label class="flex items-start justify-between gap-2.5 cursor-pointer">
-                                <div>
-                                    <div class="text-xs font-semibold text-gray-800">Авто-блокировка при 0 сек</div>
-                                    <div class="text-[11px] text-gray-500">Закрывать выбор варианта после окончания таймера</div>
-                                </div>
-                                <input type="checkbox" id="setting-auto-lock" checked class="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#6C3CE9] focus:ring-[#6C3CE9]">
-                            </label>
-
-                            <label class="flex items-start justify-between gap-2.5 cursor-pointer">
-                                <div>
-                                    <div class="text-xs font-semibold text-gray-800">Разрешить вход после старта</div>
-                                    <div class="text-[11px] text-gray-500">Пускать опоздавших игроков в уже запущенный квиз</div>
-                                </div>
-                                <input type="checkbox" id="setting-allow-late-join" checked class="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#6C3CE9] focus:ring-[#6C3CE9]">
-                            </label>
-
-                            <label class="flex items-start justify-between gap-2.5 cursor-pointer">
-                                <div>
-                                    <div class="text-xs font-semibold text-gray-800">Анти-мат и защита от дублей</div>
-                                    <div class="text-[11px] text-gray-500">Блокировка мата и повторного захода с одного телефона</div>
-                                </div>
-                                <input type="checkbox" id="setting-strict-protection" checked class="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#6C3CE9] focus:ring-[#6C3CE9]">
-                            </label>
-
-                            <label class="flex items-start justify-between gap-2.5 cursor-pointer">
-                                <div>
-                                    <div class="text-xs font-semibold text-gray-800">Показывать рейтинг в финале</div>
-                                    <div class="text-[11px] text-gray-500">Отображать топ участников на телефонах в конце игры</div>
-                                </div>
-                                <input type="checkbox" id="setting-show-leaderboard" checked class="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#6C3CE9] focus:ring-[#6C3CE9]">
-                            </label>
-                        </div>
-
-                        <button type="button" onclick="saveRoomSettingsToFirebase()"
-                            class="w-full py-2.5 px-4 rounded-xl bg-[#6C3CE9] hover:bg-[#5A2BD6] text-white text-xs font-bold transition">
+                        <button type="button" id="btn-save-settings" onclick="saveRoomSettingsToFirebase()"
+                            class="w-full py-2.5 px-4 rounded-xl bg-[#6C3CE9] hover:bg-[#5A2BD6] text-white text-xs font-bold transition shadow-sm">
                             Сохранить настройки комнаты
                         </button>
-                        <div id="room-settings-saved-hint" class="hidden text-[11px] font-semibold text-emerald-600 text-center">
-                            Настройки сохранены и применены!
+                        <div id="settings-save-status" class="hidden text-[11px] font-semibold text-emerald-600 text-center">
+                            Настройки сохранены в базе!
                         </div>
                     </div>
 
+                    <!-- Список подключённых игроков -->
                     <div>
                         <div class="flex items-center justify-between mb-2">
-                            <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-500">Участники комнаты</h4>
+                            <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-500">
+                                Участники комнаты
+                            </h4>
                             <span id="host-players-count" class="text-xs font-extrabold text-[#6C3CE9]">0 чел.</span>
                         </div>
                         <div id="host-players-list" class="space-y-2"></div>
                     </div>
                 </div>
 
+                <!-- Локальная история соло-прохождений -->
                 <div class="pt-3 border-t border-gray-100">
                     <div class="flex items-center justify-between mb-2">
                         <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-500">
@@ -528,80 +745,91 @@
             </div>
         </section>
 
-        <!-- МОДАЛЬНОЕ ОКНО PIN-КОДА ВЕДУЩЕГО (3781) -->
-        <div id="modal-admin-pin" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <!-- =================================================================
+             МОДАЛЬНОЕ ОКНО PIN-КОДА ВЕДУЩЕГО (ПИН: 3781)
+             ================================================================= -->
+        <div id="modal-admin-pin" class="hidden fixed inset-0 z-50 bg-black/55 backdrop-blur-xs flex items-center justify-center p-4">
             <div class="bg-white rounded-3xl w-full max-w-[340px] p-6 shadow-2xl">
-                <h3 class="text-lg font-extrabold text-gray-900 mb-1">Вход для ведущего</h3>
-                <p class="text-xs text-gray-500 mb-4">Введи 4-значный PIN-код организатора</p>
+                <h3 class="text-lg font-extrabold text-gray-900 mb-1">Панель ведущего</h3>
+                <p class="text-xs text-gray-500 mb-4">Введите PIN-код организатора для доступа к управлению</p>
                 <input type="password" id="input-admin-pin" maxlength="4" inputmode="numeric" placeholder="••••"
+                    onkeydown="if(event.key==='Enter') verifyAdminPin()"
                     class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-[#FAFAFC] text-center text-xl font-extrabold tracking-[0.4em] text-gray-900 focus:outline-none focus:border-[#6C3CE9] mb-2">
                 <div id="admin-pin-error" class="hidden text-xs font-semibold text-red-500 text-center mb-2">
                     Неверный PIN-код
                 </div>
                 <div class="grid grid-cols-2 gap-2 mt-3">
-                    <button type="button" onclick="closeAdminModal()" class="py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition">
+                    <button type="button" onclick="closeAdminModal()"
+                        class="py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition">
                         Отмена
                     </button>
-                    <button type="button" onclick="verifyAdminPin()" class="py-3 rounded-xl bg-[#111827] hover:bg-black text-xs font-bold text-white transition">
+                    <button type="button" onclick="verifyAdminPin()"
+                        class="py-3 rounded-xl bg-[#111827] hover:bg-black text-xs font-bold text-white transition">
                         Войти
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- МОДАЛЬНОЕ ОКНО ВЫХОДА -->
-        <div id="modal-exit-confirm" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <!-- =================================================================
+             МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ВЫХОДА ИЗ КВИЗА
+             ================================================================= -->
+        <div id="modal-exit-confirm" class="hidden fixed inset-0 z-50 bg-black/55 backdrop-blur-xs flex items-center justify-center p-4">
             <div class="bg-white rounded-3xl w-full max-w-[340px] p-6 shadow-2xl">
                 <h3 class="text-base font-extrabold text-gray-900 mb-1.5">Выйти из текущего квиза?</h3>
                 <p class="text-xs text-gray-500 leading-relaxed mb-4">
-                    Текущий прогресс в раунде будет прерван.
+                    Текущая сессия прохождения будет прервана.
                 </p>
                 <div class="grid grid-cols-2 gap-2">
-                    <button type="button" onclick="closeExitModal()" class="py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition">
+                    <button type="button" onclick="closeExitModal()"
+                        class="py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition">
                         Остаться
                     </button>
-                    <button type="button" onclick="performExitQuiz()" class="py-3 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-bold text-white transition">
+                    <button type="button" onclick="performExitQuiz()"
+                        class="py-3 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-bold text-white transition">
                         Выйти
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- ПОЛНОЭКРАННЫЙ QR-КОД ДЛЯ ПРОЕКТОРА -->
-        <div id="modal-fullscreen-qr" class="hidden fixed inset-0 z-50 bg-[#0F111A]/95 backdrop-blur-md flex flex-col items-center justify-center p-5 text-white">
-            <div class="w-full max-w-[440px] bg-white text-gray-900 rounded-[32px] p-6 sm:p-8 shadow-2xl text-center relative">
+        <!-- =================================================================
+             ПОЛНОЭКРАННЫЙ QR-КОД ДЛЯ ПРОЕКТОРА
+             ================================================================= -->
+        <div id="modal-fullscreen-qr" class="hidden fixed inset-0 z-50 bg-[#0B0D14]/95 backdrop-blur-md flex flex-col items-center justify-center p-5 text-white">
+            <div class="w-full max-w-[440px] bg-white text-gray-900 rounded-[32px] p-6 sm:p-8 shadow-2xl text-center">
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3EEFF] text-[#6C3CE9] text-xs font-extrabold uppercase tracking-wider mb-3">
-                    Business Cats • Подключение
+                    Business Cats • Алабуга Политех
                 </div>
 
-                <h3 class="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">
+                <h3 class="text-xl sm:text-2xl font-black text-gray-900 mb-1">
                     Сканируй QR-код камерой
                 </h3>
                 <p class="text-xs sm:text-sm text-gray-500 mb-5">
-                    Открой ссылку на телефоне и введи своё имя для входа в игру
+                    Открой ссылку на телефоне и введи имя для входа в комнату
                 </p>
 
-                <div class="w-[230px] h-[230px] sm:w-[260px] sm:h-[260px] mx-auto p-3.5 rounded-3xl bg-white border-2 border-gray-200 shadow-inner flex items-center justify-center mb-5">
+                <div class="w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] mx-auto p-3.5 rounded-3xl bg-white border-2 border-gray-200 shadow-inner flex items-center justify-center mb-5">
                     <div id="fullscreen-qr-target" class="w-full h-full"></div>
                 </div>
 
                 <div class="p-3.5 rounded-2xl bg-[#F6F4FF] border border-[#DDD6FE] mb-4">
                     <div class="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">
-                        Или введи код комнаты вручную
+                        Код комнаты для ручного входа
                     </div>
-                    <div class="text-3xl sm:text-4xl font-extrabold tracking-[0.22em] text-[#6C3CE9]">
+                    <div class="text-3xl sm:text-4xl font-black tracking-[0.22em] text-[#6C3CE9]">
                         <span id="fullscreen-qr-room-code">0000</span>
                     </div>
                 </div>
 
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-xs sm:text-sm font-bold text-emerald-800 mb-5">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Подключилось участников: <span id="fullscreen-qr-players-count" class="font-extrabold">0</span></span>
+                    <span>Подключилось участников: <span id="fullscreen-qr-players-count" class="font-black">0</span></span>
                 </div>
 
                 <button type="button" onclick="closeFullscreenQrModal()"
                     class="w-full py-3.5 px-5 rounded-2xl bg-[#111827] hover:bg-black text-white text-sm font-bold transition">
-                    Закрыть экран
+                    Закрыть экран (Esc)
                 </button>
             </div>
         </div>
@@ -609,9 +837,9 @@
     </div>
 
     <script>
-        // =========================================================================
-        // 1. КОНФИГУРАЦИЯ FIREBASE REALTIME DATABASE
-        // =========================================================================
+        // =====================================================================
+        // 1. ИНИЦИАЛИЗАЦИЯ FIREBASE REALTIME DATABASE
+        // =====================================================================
         const FIREBASE_CONFIG = {
             databaseURL: "https://businessteach-default-rtdb.firebaseio.com"
         };
@@ -627,6 +855,8 @@
                 const dot = document.getElementById("firebase-status-dot");
                 const text = document.getElementById("firebase-status-text");
                 const pill = document.getElementById("firebase-status-pill");
+                if (!dot || !text || !pill) return;
+
                 if (snap.val() === true) {
                     dot.className = "w-2 h-2 rounded-full bg-emerald-500";
                     text.textContent = "Онлайн-синхронизация";
@@ -641,9 +871,9 @@
             console.error("Ошибка инициализации Firebase:", err);
         }
 
-        // =========================================================================
-        // 2. ОБНОВЛЁННЫЕ ВОПРОСЫ ПО МЕХАНИКЕ BUSINESS CATS
-        // =========================================================================
+        // =====================================================================
+        // 2. ЗАФИКСИРОВАННЫЕ 4 ВОПРОСА ПО МЕХАНИКЕ BUSINESS CATS
+        // =====================================================================
         const QUESTIONS = [
             {
                 question: "У вас 56 монет. Как вы поступите с монетами в начале игры?",
@@ -653,7 +883,7 @@
                 ],
                 correctIndex: 0,
                 points: 250,
-                speakerNote: "Правильный выбор — купить дорогих котят: оставшихся 24 монет ровно хватает, чтобы прокормить пару в питомнике до 5 сезона и выйти в хорошую прибыль."
+                speakerNote: "Правильный выбор — купить двух дорогих котов: оставшихся 24 монет хватает, чтобы продержаться до 5 сезона и выйти в прибыль."
             },
             {
                 question: "Сколько питомник требует денег, чтобы дожить до 5 сезона с 1 парой котят?",
@@ -665,19 +895,19 @@
                 ],
                 correctIndex: 1,
                 points: 250,
-                speakerNote: "Для содержания питомника с одной парой котят до 5 сезона требуется ровно 24 монеты."
+                speakerNote: "Для содержания питомника с одной парой котят до 5 сезона требуется 24 монеты."
             },
             {
-                question: "Сколько монет нужно, чтобы дожить до 5 сезона за магазин?",
+                question: "Сколько нужно, чтобы дожить до 5 сезона за магазин?",
                 options: [
                     "5 монет",
                     "15 монет",
                     "24 монеты",
-                    "32 монеты"
+                    "30 монет"
                 ],
                 correctIndex: 0,
                 points: 250,
-                speakerNote: "При игре за магазин на содержание до 5 сезона требуется всего 5 монет."
+                speakerNote: "Чтобы дожить до 5 сезона за магазин, требуется 5 монеток."
             },
             {
                 question: "Какие основные сезоны, когда появляются коты?",
@@ -685,17 +915,17 @@
                     "2 - 4 - 6",
                     "3 - 6 - 8",
                     "5 - 7 - 9",
-                    "4 - 8 - 10"
+                    "6 - 8 - 10"
                 ],
                 correctIndex: 2,
                 points: 250,
-                speakerNote: "Основные сезоны появления котов в игре — 5, 7 и 9 сезоны."
+                speakerNote: "Основные сезоны появления котов в игре — 5 - 7 - 9."
             }
         ];
 
-        // =========================================================================
-        // 3. НАСТРОЙКИ КОМНАТЫ И СОСТОЯНИЕ ПРИЛОЖЕНИЯ
-        // =========================================================================
+        // =====================================================================
+        // 3. НАСТРОЙКИ КОМНАТЫ, АНТИ-МАТ И СОСТОЯНИЕ СЕССИИ
+        // =====================================================================
         const ADMIN_PIN = "3781";
 
         const DEFAULT_ROOM_SETTINGS = {
@@ -704,10 +934,33 @@
             autoLockOnTimeout: true,
             allowLateJoin: true,
             strictProtection: true,
+            showQuestionCounter: true,
             showLeaderboard: true
         };
 
-        let activeRoomSettings = { ...DEFAULT_ROOM_SETTINGS };
+        const PROFANITY_PATTERNS = [
+            /сук[аиуеёоы]/i,
+            /бля[дтть]?/i,
+            /ху[йяеёюи]/i,
+            /пизд/i,
+            /еба[ттьнлв]/i,
+            /ёба[ттьнлв]/i,
+            /муда[кч]/i,
+            /долбо[её]б/i,
+            /гандон/i,
+            /шлюх/i,
+            /чмошник/i,
+            /ублюд/i,
+            /fuck/i,
+            /shit/i,
+            /bitch/i,
+            /asshole/i
+        ];
+
+        function containsProfanity(text) {
+            const clean = String(text || "").replace(/\s+/g, "");
+            return PROFANITY_PATTERNS.some((rx) => rx.test(clean) || rx.test(text));
+        }
 
         function normalizeRoomSettings(raw) {
             const merged = { ...DEFAULT_ROOM_SETTINGS, ...(raw || {}) };
@@ -719,6 +972,7 @@
             merged.autoLockOnTimeout = merged.autoLockOnTimeout !== false;
             merged.allowLateJoin = merged.allowLateJoin !== false;
             merged.strictProtection = merged.strictProtection !== false;
+            merged.showQuestionCounter = merged.showQuestionCounter !== false;
             merged.showLeaderboard = merged.showLeaderboard !== false;
             return merged;
         }
@@ -731,16 +985,44 @@
         }
 
         function getDeviceId() {
-            let id = localStorage.getItem("bc_device_uid_v2");
+            let id = localStorage.getItem("bc_device_uid_v3");
             if (!id) {
                 id = "dev_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now().toString(36);
-                localStorage.setItem("bc_device_uid_v2", id);
+                localStorage.setItem("bc_device_uid_v3", id);
             }
             return id;
         }
 
         const DEVICE_ID = getDeviceId();
+        const SESSION_STORAGE_KEY = "bc_active_player_session_v3";
+        const SOLO_STATS_KEY = "bc_solo_results_v3";
 
+        function savePlayerSession(session) {
+            try {
+                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+            } catch (e) {
+                console.warn("Не удалось сохранить сессию:", e);
+            }
+        }
+
+        function loadPlayerSession() {
+            try {
+                const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function clearPlayerSession() {
+            try {
+                localStorage.removeItem(SESSION_STORAGE_KEY);
+            } catch (e) {
+                console.warn("Не удалось очистить сессию:", e);
+            }
+        }
+
+        // Состояние участника и соло-режима
         let entryMode = "room";
         let playerNickname = "";
         let activeRoomCode = "";
@@ -749,71 +1031,47 @@
         let isOptionLocked = false;
         let playerAnswers = [];
         let questionTimerInterval = null;
-        let lastLiveStepSignature = "";
         let activeQuestionDurationSec = DEFAULT_ROOM_SETTINGS.timerSeconds;
         let activeQuestionNoTimer = false;
         let activeQuestionAutoLock = true;
+        let activeRoomSettings = { ...DEFAULT_ROOM_SETTINGS };
         let roomListenerRef = null;
         let banListenerRef = null;
+        let lastLiveSignature = "";
 
-        let currentHostRoomCode = localStorage.getItem("bc_host_room_code") || "";
+        // Состояние ведущего
+        let currentHostRoomCode = localStorage.getItem("bc_host_room_code_v3") || "";
         let hostRoomRef = null;
         let hostTimerInterval = null;
         let currentHostRoomData = null;
         let settingsFormInitializedForRoom = "";
+        let hostAnswerRevealed = false;
+        let lastHostRevealedKey = "";
 
-        // =========================================================================
-        // 4. АНТИ-МАТ ФИЛЬТР И ЗАЩИТА ДАННЫХ
-        // =========================================================================
-        const BAD_WORDS_ROOTS = [
-            "хуй", "хуе", "хуя", "хуи", "пизд", "еба", "ебл", "ебн", "ёб", "бля",
-            "сук", "суч", "муд", "пидор", "пидар", "педик", "гандон", "гондон",
-            "залуп", "шлюх", "даун", "дебил", "долбоеб", "долбоёб", "мраз", "твар",
-            "fuck", "shit", "bitch", "dick", "cock", "pussy", "nigger", "faggot"
-        ];
-
-        function normalizeLeetspeak(str) {
-            return str
-                .toLowerCase()
-                .replace(/0/g, "о")
-                .replace(/3/g, "е")
-                .replace(/4/g, "а")
-                .replace(/6/g, "б")
-                .replace(/@/g, "а")
-                .replace(/x/g, "х")
-                .replace(/y/g, "у")
-                .replace(/e/g, "е")
-                .replace(/a/g, "а")
-                .replace(/o/g, "о")
-                .replace(/p/g, "р")
-                .replace(/c/g, "с")
-                .replace(/[^а-яёa-z]/g, "");
-        }
-
-        function isProfane(nickname) {
-            const clean = normalizeLeetspeak(nickname);
-            return BAD_WORDS_ROOTS.some(root => clean.includes(root));
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement("div");
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // =========================================================================
-        // 5. НАВИГАЦИЯ ПО ЭКРАНАМ И АВТО-ВОЗВРАТ ПРИ ОБНОВЛЕНИИ (F5)
-        // =========================================================================
+        // =====================================================================
+        // 4. НАВИГАЦИЯ ПО ЭКРАНАМ И МОДАЛЬНЫМ ОКНАМ
+        // =====================================================================
         function showScreen(screenId) {
             const screens = ["screen-start", "screen-lobby", "screen-quiz", "screen-result", "screen-admin"];
-            screens.forEach(id => {
+            screens.forEach((id) => {
                 const el = document.getElementById(id);
-                if (id === screenId) {
-                    el.classList.remove("hidden");
-                } else {
-                    el.classList.add("hidden");
+                if (el) {
+                    if (id === screenId) el.classList.remove("hidden");
+                    else el.classList.add("hidden");
                 }
             });
+        }
+
+        function showEntryError(msg) {
+            const box = document.getElementById("entry-error-box");
+            box.textContent = msg;
+            box.classList.remove("hidden");
+        }
+
+        function hideEntryError() {
+            const box = document.getElementById("entry-error-box");
+            box.textContent = "";
+            box.classList.add("hidden");
         }
 
         function switchEntryMode(mode) {
@@ -833,226 +1091,128 @@
                 tabSolo.className = "py-2.5 px-3 rounded-xl text-xs font-bold bg-white text-gray-900 shadow-sm transition";
                 tabRoom.className = "py-2.5 px-3 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-800 transition";
                 codeWrap.classList.add("hidden");
-                btnLabel.textContent = "Начать соло-тест";
+                btnLabel.textContent = "Начать соло-игру";
             }
         }
 
-        function showEntryError(msg) {
-            const box = document.getElementById("entry-error-box");
-            box.textContent = msg;
-            box.classList.remove("hidden");
-        }
-
-        function hideEntryError() {
-            document.getElementById("entry-error-box").classList.add("hidden");
-        }
-
-        function saveActiveSession(sessionObj) {
-            localStorage.setItem("bc_active_session", JSON.stringify(sessionObj));
-        }
-
-        function clearActiveSession() {
-            localStorage.removeItem("bc_active_session");
-        }
-
-        async function restoreSessionOnLoad() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomParam = urlParams.get("room");
-            if (roomParam && /^\d{4}$/.test(roomParam)) {
-                switchEntryMode("room");
-                document.getElementById("input-room-code").value = roomParam;
-            }
-
-            if (!db) return;
-
-            const isHostActive = localStorage.getItem("bc_host_session_active") === "1";
-            if (isHostActive) {
-                openAdminPanelDirectly();
-                return;
-            }
-
-            const rawSession = localStorage.getItem("bc_active_session");
-            if (!rawSession) return;
-
-            try {
-                const session = JSON.parse(rawSession);
-                if (!session || !session.roomCode || !session.playerId) return;
-
-                const roomSnap = await db.ref(`rooms/${session.roomCode}`).once("value");
-                if (!roomSnap.exists()) {
-                    clearActiveSession();
-                    return;
-                }
-
-                const room = roomSnap.val();
-                const playersObj = room.players || {};
-                const me = playersObj[session.playerId];
-                if (!me) {
-                    clearActiveSession();
-                    return;
-                }
-
-                entryMode = "room";
-                activeRoomCode = session.roomCode;
-                playerNickname = me.name;
-                playerAnswers = new Array(QUESTIONS.length).fill(null);
-                if (me.answers) {
-                    Object.entries(me.answers).forEach(([k, v]) => {
-                        if (Number(k) < QUESTIONS.length) {
-                            playerAnswers[Number(k)] = v;
-                        }
-                    });
-                }
-
-                subscribeToLiveRoom(session.roomCode);
-            } catch (e) {
-                clearActiveSession();
-            }
-        }
-
-        // =========================================================================
-        // 6. ВХОД В КОМНАТУ ИЛИ СОЛО-ТЕСТ
-        // =========================================================================
+        // =====================================================================
+        // 5. ВХОД УЧАСТНИКА (КОМНАТА С ВЕДУЩИМ ИЛИ СОЛО)
+        // =====================================================================
         async function handleStartSubmit() {
             hideEntryError();
-            const rawNick = document.getElementById("input-nickname").value.trim();
+            const nickInput = document.getElementById("input-nickname");
+            const codeInput = document.getElementById("input-room-code");
+            const nick = nickInput.value.trim();
 
-            if (rawNick.length < 2) {
-                showEntryError("Введи имя минимум из 2 символов.");
+            if (!nick || nick.length < 2) {
+                showEntryError("Введите имя или никнейм (минимум 2 символа).");
+                nickInput.focus();
                 return;
             }
+
+            if (entryMode === "solo") {
+                if (containsProfanity(nick)) {
+                    showEntryError("Пожалуйста, выберите корректное имя без нецензурных слов.");
+                    nickInput.focus();
+                    return;
+                }
+                startSoloQuiz(nick);
+                return;
+            }
+
+            const roomCode = codeInput.value.replace(/\D/g, "").slice(0, 4);
+            if (roomCode.length !== 4) {
+                showEntryError("Введите 4-значный код комнаты.");
+                codeInput.focus();
+                return;
+            }
+
             if (!db) {
-                showEntryError("Нет соединения с базой данных. Проверь интернет.");
+                showEntryError("Нет подключения к Firebase Realtime Database.");
                 return;
             }
 
-            playerNickname = rawNick;
-            const btn = document.getElementById("btn-start-submit");
-            btn.disabled = true;
+            const submitBtn = document.getElementById("btn-start-submit");
+            submitBtn.disabled = true;
+            document.getElementById("btn-start-label").textContent = "Подключаемся...";
 
             try {
-                if (entryMode === "room") {
-                    const code = document.getElementById("input-room-code").value.trim();
-                    if (!/^\d{4}$/.test(code)) {
-                        showEntryError("Введи 4-значный код комнаты от ведущего.");
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const roomSnap = await db.ref(`rooms/${code}`).once("value");
-                    if (!roomSnap.exists()) {
-                        showEntryError(`Комната #${code} не найдена. Уточни код у ведущего.`);
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const roomData = roomSnap.val();
-                    const roomSettings = normalizeRoomSettings(roomData.settings);
-
-                    if (roomSettings.strictProtection && isProfane(rawNick)) {
-                        showEntryError("Недопустимый никнейм. Используй корректное имя без мата.");
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    if (roomData.state === "finished") {
-                        showEntryError("Эта игра уже завершена ведущим.");
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const banSnap = await db.ref(`rooms/${code}/banned/${DEVICE_ID}`).once("value");
-                    if (banSnap.exists()) {
-                        showEntryError("Доступ в эту комнату для твоего устройства закрыт ведущим.");
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const existingPlayerSnap = await db.ref(`rooms/${code}/players/${DEVICE_ID}`).once("value");
-                    if (existingPlayerSnap.exists()) {
-                        const existingPlayer = existingPlayerSnap.val();
-                        activeRoomCode = code;
-                        playerNickname = existingPlayer.name;
-                        playerAnswers = new Array(QUESTIONS.length).fill(null);
-                        if (existingPlayer.answers) {
-                            Object.entries(existingPlayer.answers).forEach(([k, v]) => {
-                                if (Number(k) < QUESTIONS.length) {
-                                    playerAnswers[Number(k)] = v;
-                                }
-                            });
-                        }
-                        saveActiveSession({
-                            roomCode: code,
-                            playerId: DEVICE_ID,
-                            nickname: playerNickname
-                        });
-                        subscribeToLiveRoom(code);
-                        return;
-                    }
-
-                    if (roomData.state === "question" && !roomSettings.allowLateJoin) {
-                        showEntryError("Ведущий закрыл вход в комнату после старта игры.");
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    activeRoomCode = code;
-                    playerAnswers = new Array(QUESTIONS.length).fill(null);
-
-                    await db.ref(`rooms/${code}/players/${DEVICE_ID}`).set({
-                        deviceId: DEVICE_ID,
-                        name: playerNickname,
-                        score: 0,
-                        correctCount: 0,
-                        answers: {},
-                        joinedAt: firebase.database.ServerValue.TIMESTAMP
-                    });
-
-                    saveActiveSession({
-                        roomCode: code,
-                        playerId: DEVICE_ID,
-                        nickname: playerNickname
-                    });
-
-                    subscribeToLiveRoom(code);
-                } else {
-                    if (isProfane(rawNick)) {
-                        showEntryError("Недопустимый никнейм. Используй корректное имя без мата.");
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const soloLockKey = "bc_solo_completed_v2";
-                    const soloSnap = await db.ref(`solo_results/${DEVICE_ID}`).once("value");
-                    if (localStorage.getItem(soloLockKey) === "1" || soloSnap.exists()) {
-                        showEntryError("Ты уже прошёл соло-тест с этого устройства. Повторная попытка заблокирована.");
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    activeRoomCode = "";
-                    currentQuestionIdx = 0;
-                    playerAnswers = new Array(QUESTIONS.length).fill(null);
-                    activeRoomSettings = { ...DEFAULT_ROOM_SETTINGS };
-                    document.getElementById("quiz-mode-subtitle").textContent = "Соло-режим";
-                    renderQuestion(0, Date.now(), {
-                        timerSeconds: DEFAULT_ROOM_SETTINGS.timerSeconds,
-                        noTimer: false,
-                        autoLockOnTimeout: true
-                    });
-                    showScreen("screen-quiz");
+                const roomSnap = await db.ref(`rooms/${roomCode}`).get();
+                if (!roomSnap.exists()) {
+                    showEntryError(`Комната #${roomCode} не найдена. Проверьте код у ведущего.`);
+                    return;
                 }
-            } catch (e) {
-                showEntryError("Ошибка подключения. Попробуй ещё раз.");
+
+                const roomData = roomSnap.val();
+                const settings = normalizeRoomSettings(roomData.settings);
+
+                if (settings.strictProtection && containsProfanity(nick)) {
+                    showEntryError("Имя не прошло фильтр безопасности. Выберите другой никнейм.");
+                    return;
+                }
+
+                const banSnap = await db.ref(`rooms/${roomCode}/banned/${DEVICE_ID}`).get();
+                if (banSnap.exists()) {
+                    showEntryError("Вы были исключены из этой комнаты ведущим.");
+                    return;
+                }
+
+                const existingPlayerSnap = await db.ref(`rooms/${roomCode}/players/${DEVICE_ID}`).get();
+                const alreadyJoinedBefore = existingPlayerSnap.exists();
+
+                if (settings.strictProtection && alreadyJoinedBefore && !roomData.allowRejoin) {
+                    const saved = loadPlayerSession();
+                    if (!saved || saved.roomCode !== roomCode) {
+                        showEntryError("С этого устройства уже выполнен вход в комнату (защита от повторного входа).");
+                        return;
+                    }
+                }
+
+                if (!settings.allowLateJoin && roomData.state !== "lobby" && !alreadyJoinedBefore) {
+                    showEntryError("Ведущий запретил вход новых участников после начала игры.");
+                    return;
+                }
+
+                playerNickname = nick;
+                activeRoomCode = roomCode;
+                activeRoomSettings = settings;
+
+                const existingPlayer = existingPlayerSnap.val() || {};
+                const initialScore = typeof existingPlayer.score === "number" ? existingPlayer.score : 0;
+                const initialCorrect = typeof existingPlayer.correctCount === "number" ? existingPlayer.correctCount : 0;
+                const initialAnswers = Array.isArray(existingPlayer.answers) ? existingPlayer.answers : [];
+
+                await db.ref(`rooms/${roomCode}/players/${DEVICE_ID}`).set({
+                    id: DEVICE_ID,
+                    name: playerNickname,
+                    score: initialScore,
+                    correctCount: initialCorrect,
+                    answers: initialAnswers,
+                    joinedAt: existingPlayer.joinedAt || firebase.database.ServerValue.TIMESTAMP,
+                    lastSeenAt: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                savePlayerSession({
+                    mode: "room",
+                    roomCode: roomCode,
+                    nickname: playerNickname
+                });
+
+                subscribeToRoom(roomCode);
+            } catch (err) {
+                console.error("Ошибка входа в комнату:", err);
+                showEntryError("Ошибка связи с сервером. Попробуйте ещё раз.");
             } finally {
-                btn.disabled = false;
+                submitBtn.disabled = false;
+                document.getElementById("btn-start-label").textContent =
+                    entryMode === "room" ? "Войти в комнату" : "Начать соло-игру";
             }
         }
 
-        // =========================================================================
-        // 7. ПОДПИСКА НА LIVE-КОМНАТУ ДЛЯ УЧАСТНИКА
-        // =========================================================================
-        function cleanupPlayerListeners() {
+        // =====================================================================
+        // 6. ПОДПИСКА НА СОСТОЯНИЕ КОМНАТЫ И АВТО-ВОЗВРАТ ПРИ ОБНОВЛЕНИИ
+        // =====================================================================
+        function detachRoomListeners() {
             if (roomListenerRef) {
                 roomListenerRef.off();
                 roomListenerRef = null;
@@ -1061,197 +1221,216 @@
                 banListenerRef.off();
                 banListenerRef = null;
             }
+            stopQuestionTimer();
         }
 
-        function subscribeToLiveRoom(code) {
-            cleanupPlayerListeners();
-            lastLiveStepSignature = "";
-            document.getElementById("lobby-room-code").textContent = code;
-            document.getElementById("quiz-mode-subtitle").textContent = `Комната #${code}`;
+        function subscribeToRoom(roomCode) {
+            detachRoomListeners();
+            activeRoomCode = roomCode;
+            lastLiveSignature = "";
 
-            banListenerRef = db.ref(`rooms/${code}/banned/${DEVICE_ID}`);
+            banListenerRef = db.ref(`rooms/${roomCode}/banned/${DEVICE_ID}`);
             banListenerRef.on("value", (snap) => {
-                if (snap.exists()) {
-                    stopQuestionTimer();
-                    clearActiveSession();
-                    cleanupPlayerListeners();
+                if (snap.exists() && activeRoomCode === roomCode) {
+                    clearPlayerSession();
+                    detachRoomListeners();
                     showScreen("screen-start");
-                    showEntryError("Ведущий удалил тебя из комнаты.");
+                    switchEntryMode("room");
+                    document.getElementById("input-room-code").value = roomCode;
+                    showEntryError("Вы были исключены ведущим из комнаты #" + roomCode + ".");
                 }
             });
 
-            roomListenerRef = db.ref(`rooms/${code}`);
+            roomListenerRef = db.ref(`rooms/${roomCode}`);
             roomListenerRef.on("value", (snap) => {
                 if (!snap.exists()) {
-                    stopQuestionTimer();
-                    clearActiveSession();
-                    cleanupPlayerListeners();
+                    clearPlayerSession();
+                    detachRoomListeners();
                     showScreen("screen-start");
-                    showEntryError("Комната была закрыта ведущим.");
+                    switchEntryMode("room");
+                    showEntryError("Комната была закрыта или удалена ведущим.");
                     return;
                 }
 
                 const room = snap.val();
                 activeRoomSettings = normalizeRoomSettings(room.settings);
-                const playersObj = room.players || {};
-                const meRecord = playersObj[DEVICE_ID];
 
-                if (!meRecord) {
+                const playersObj = room.players || {};
+                const playersList = Object.values(playersObj);
+                const me = playersObj[DEVICE_ID];
+
+                if (!me && activeRoomCode === roomCode) {
+                    const saved = loadPlayerSession();
+                    if (saved && saved.roomCode === roomCode && saved.nickname) {
+                        db.ref(`rooms/${roomCode}/players/${DEVICE_ID}`).set({
+                            id: DEVICE_ID,
+                            name: saved.nickname,
+                            score: 0,
+                            correctCount: 0,
+                            answers: [],
+                            joinedAt: firebase.database.ServerValue.TIMESTAMP,
+                            lastSeenAt: firebase.database.ServerValue.TIMESTAMP
+                        });
+                        return;
+                    }
+                }
+
+                if (me) {
+                    playerNickname = me.name || playerNickname;
+                    playerAnswers = Array.isArray(me.answers) ? me.answers : [];
+                }
+
+                const roomState = room.state || "lobby";
+                const qIndex = Math.min(Math.max(0, Number(room.currentQuestionIndex) || 0), QUESTIONS.length - 1);
+                const qStartedAt = Number(room.questionStartedAt) || Date.now();
+                const qDuration = Number(room.questionDurationSec) || activeRoomSettings.timerSeconds;
+                const qNoTimer = room.questionNoTimer !== undefined ? Boolean(room.questionNoTimer) : activeRoomSettings.noTimer;
+                const qAutoLock = room.questionAutoLock !== undefined ? Boolean(room.questionAutoLock) : activeRoomSettings.autoLockOnTimeout;
+
+                if (roomState === "lobby") {
+                    document.getElementById("lobby-room-code").textContent = roomCode;
+                    document.getElementById("lobby-player-nick").textContent = playerNickname || "участник";
+                    document.getElementById("lobby-players-count").textContent = String(playersList.length);
+                    showScreen("screen-lobby");
                     stopQuestionTimer();
-                    clearActiveSession();
-                    cleanupPlayerListeners();
-                    showScreen("screen-start");
-                    showEntryError("Твоя сессия в комнате завершена.");
+                    lastLiveSignature = "";
                     return;
                 }
 
-                document.getElementById("lobby-players-count").textContent = Object.keys(playersObj).length;
+                if (roomState === "question") {
+                    const alreadyAnsweredThisQ = playerAnswers[qIndex] !== undefined && playerAnswers[qIndex] !== null;
+                    const signature = `${roomCode}_q_${qIndex}_${qStartedAt}_${qDuration}_${qNoTimer}_${alreadyAnsweredThisQ}_${activeRoomSettings.showQuestionCounter}`;
 
-                if (meRecord.answers) {
-                    Object.entries(meRecord.answers).forEach(([k, v]) => {
-                        if (Number(k) < QUESTIONS.length) {
-                            playerAnswers[Number(k)] = v;
-                        }
-                    });
+                    if (signature !== lastLiveSignature) {
+                        lastLiveSignature = signature;
+                        renderLiveQuestion(qIndex, qStartedAt, qDuration, qNoTimer, qAutoLock, alreadyAnsweredThisQ, playerAnswers[qIndex]);
+                    }
+                    showScreen("screen-quiz");
+                    return;
                 }
 
-                if (room.state === "lobby") {
+                if (roomState === "finished") {
                     stopQuestionTimer();
-                    showScreen("screen-lobby");
-                } else if (room.state === "question") {
-                    const qIdx = Math.min(room.currentQuestion || 0, QUESTIONS.length - 1);
-                    const startedAt = room.questionStartedAt || Date.now();
-                    const qDuration = Number.isFinite(Number(room.questionDurationSec))
-                        ? Number(room.questionDurationSec)
-                        : activeRoomSettings.timerSeconds;
-                    const qNoTimer = typeof room.questionNoTimer === "boolean"
-                        ? room.questionNoTimer
-                        : activeRoomSettings.noTimer;
-                    const qAutoLock = typeof room.questionAutoLock === "boolean"
-                        ? room.questionAutoLock
-                        : activeRoomSettings.autoLockOnTimeout;
-
-                    const sig = `${qIdx}_${startedAt}_${qDuration}_${qNoTimer}_${qAutoLock}`;
-
-                    if (lastLiveStepSignature !== sig) {
-                        lastLiveStepSignature = sig;
-                        currentQuestionIdx = qIdx;
-                        renderQuestion(qIdx, startedAt, {
-                            timerSeconds: qDuration,
-                            noTimer: qNoTimer,
-                            autoLockOnTimeout: qAutoLock
-                        });
-                        showScreen("screen-quiz");
-
-                        const alreadyAnswered = meRecord.answers && meRecord.answers[qIdx] !== undefined;
-                        if (alreadyAnswered) {
-                            const prevChoice = meRecord.answers[qIdx];
-                            if (prevChoice >= 0 && prevChoice < QUESTIONS[qIdx].options.length) {
-                                selectOption(prevChoice);
-                            }
-                            lockAllOptions();
-                            document.getElementById("quiz-action-wrap").classList.add("hidden");
-                            document.getElementById("live-locked-notice").classList.remove("hidden");
-                        }
-                    }
-                } else if (room.state === "finished") {
-                    stopQuestionTimer();
+                    lastLiveSignature = "";
                     showLiveResultScreen(playersObj, activeRoomSettings.showLeaderboard);
+                    showScreen("screen-result");
                 }
             });
         }
 
-        // =========================================================================
-        // 8. ОТРИСОВКА ВОПРОСА И НАСТРАИВАЕМЫЙ ТАЙМЕР
-        // =========================================================================
-        function renderQuestion(qIdx, startedAtTimestamp, timerCfg = {}) {
-            const q = QUESTIONS[qIdx];
-            selectedOptionIdx = null;
-            isOptionLocked = false;
+        function renderLiveQuestion(qIndex, startedAt, durationSec, noTimer, autoLock, alreadyAnswered, savedAnswerIdx) {
+            const q = QUESTIONS[qIndex];
+            currentQuestionIdx = qIndex;
+            activeQuestionDurationSec = durationSec;
+            activeQuestionNoTimer = noTimer;
+            activeQuestionAutoLock = autoLock;
 
-            activeQuestionDurationSec = Number.isFinite(Number(timerCfg.timerSeconds))
-                ? Math.max(10, Math.min(300, Number(timerCfg.timerSeconds)))
-                : DEFAULT_ROOM_SETTINGS.timerSeconds;
-            activeQuestionNoTimer = Boolean(timerCfg.noTimer);
-            activeQuestionAutoLock = timerCfg.autoLockOnTimeout !== false;
+            document.getElementById("quiz-mode-subtitle").textContent = `Комната #${activeRoomCode} • ${playerNickname}`;
 
-            document.getElementById("q-current-num").textContent = qIdx + 1;
-            document.getElementById("q-total-num").textContent = QUESTIONS.length;
-            document.getElementById("q-title").textContent = q.question;
-
-            const pct = ((qIdx + 1) / QUESTIONS.length) * 100;
-            document.getElementById("quiz-progress-bar").style.width = `${pct}%`;
-
-            document.getElementById("live-locked-notice").classList.add("hidden");
-
-            const actionWrap = document.getElementById("quiz-action-wrap");
-            const nextBtn = document.getElementById("btn-quiz-next");
-            const nextBtnText = document.getElementById("btn-quiz-next-text");
-            actionWrap.classList.remove("hidden");
-            nextBtn.disabled = true;
-
-            if (entryMode === "room") {
-                nextBtnText.textContent = "Подтвердить ответ";
+            const counterRow = document.getElementById("q-counter-row");
+            if (activeRoomSettings.showQuestionCounter) {
+                counterRow.classList.remove("hidden");
+                document.getElementById("q-current-num").textContent = String(qIndex + 1);
+                document.getElementById("q-total-num").textContent = String(QUESTIONS.length);
             } else {
-                nextBtnText.textContent = (qIdx === QUESTIONS.length - 1) ? "Завершить" : "Далее";
+                counterRow.classList.add("hidden");
             }
+
+            const progressPct = ((qIndex + 1) / QUESTIONS.length) * 100;
+            document.getElementById("quiz-progress-bar").style.width = `${progressPct}%`;
+            document.getElementById("q-title").textContent = q.question;
+            document.getElementById("solo-review-box").classList.add("hidden");
 
             const listEl = document.getElementById("q-options-list");
             listEl.innerHTML = "";
 
+            const confirmBtn = document.getElementById("btn-quiz-next");
+            const actionWrap = document.getElementById("quiz-action-wrap");
+            const lockedNotice = document.getElementById("live-locked-notice");
+
+            selectedOptionIdx = alreadyAnswered ? savedAnswerIdx : null;
+            isOptionLocked = Boolean(alreadyAnswered);
+
             q.options.forEach((optText, idx) => {
+                const isSelected = selectedOptionIdx === idx;
                 const btn = document.createElement("button");
                 btn.type = "button";
-                btn.className = "option-card w-full p-3.5 rounded-2xl flex items-center justify-between gap-3 text-left";
-                btn.dataset.idx = idx;
+                btn.className = `option-card w-full p-3.5 sm:p-4 rounded-2xl text-left flex items-center gap-3.5 ${isSelected ? "selected" : ""} ${isOptionLocked ? "locked" : ""}`;
+                btn.disabled = isOptionLocked;
+
                 btn.innerHTML = `
-                    <span class="text-sm font-medium text-gray-800 leading-snug">${optText}</span>
                     <span class="radio-dot">
-                        <svg class="w-3.5 h-3.5 text-white hidden check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                        </svg>
+                        <span class="w-2 h-2 rounded-full bg-white ${isSelected ? "" : "hidden"}"></span>
                     </span>
+                    <span class="text-sm font-semibold text-gray-800 leading-snug">${escapeHtml(optText)}</span>
                 `;
-                btn.onclick = () => selectOption(idx);
+
+                if (!isOptionLocked) {
+                    btn.onclick = () => selectOption(idx);
+                }
+
                 listEl.appendChild(btn);
             });
 
-            startQuestionTimer(startedAtTimestamp);
+            if (isOptionLocked) {
+                actionWrap.classList.add("hidden");
+                lockedNotice.classList.remove("hidden");
+            } else {
+                actionWrap.classList.remove("hidden");
+                lockedNotice.classList.add("hidden");
+                confirmBtn.disabled = selectedOptionIdx === null;
+                document.getElementById("btn-quiz-next-text").textContent = "Подтвердить ответ";
+            }
+
+            startQuestionTimer(startedAt, true);
         }
 
         function selectOption(idx) {
             if (isOptionLocked) return;
             selectedOptionIdx = idx;
 
-            document.querySelectorAll(".option-card").forEach((card, i) => {
-                const icon = card.querySelector(".check-icon");
+            const cards = document.querySelectorAll("#q-options-list .option-card");
+            cards.forEach((card, i) => {
+                const dot = card.querySelector(".radio-dot span");
                 if (i === idx) {
                     card.classList.add("selected");
-                    icon.classList.remove("hidden");
+                    if (dot) dot.classList.remove("hidden");
                 } else {
                     card.classList.remove("selected");
-                    icon.classList.add("hidden");
+                    if (dot) dot.classList.add("hidden");
                 }
             });
 
             document.getElementById("btn-quiz-next").disabled = false;
         }
 
-        function lockAllOptions() {
+        function lockAllOptionCards() {
             isOptionLocked = true;
-            document.querySelectorAll(".option-card").forEach(card => {
+            const cards = document.querySelectorAll("#q-options-list .option-card");
+            cards.forEach((card) => {
                 card.classList.add("locked");
+                card.disabled = true;
             });
         }
 
-        function startQuestionTimer(startedAtTimestamp) {
+        // =====================================================================
+        // 7. ТАЙМЕР ВОПРОСА И ОТПРАВКА ОТВЕТА
+        // =====================================================================
+        function stopQuestionTimer() {
+            if (questionTimerInterval) {
+                clearInterval(questionTimerInterval);
+                questionTimerInterval = null;
+            }
+        }
+
+        function startQuestionTimer(startedAtTimestamp, isLiveMode) {
             stopQuestionTimer();
             const pill = document.getElementById("timer-pill");
             const display = document.getElementById("timer-display");
             pill.classList.remove("timer-urgent");
 
             if (activeQuestionNoTimer) {
-                display.textContent = "Без лимита";
+                display.textContent = "∞";
                 return;
             }
 
@@ -1268,7 +1447,7 @@
 
                 if (remaining === 0) {
                     stopQuestionTimer();
-                    handleQuestionTimeout();
+                    handleQuestionTimeout(isLiveMode);
                 }
             };
 
@@ -1276,165 +1455,263 @@
             questionTimerInterval = setInterval(tick, 250);
         }
 
-        function stopQuestionTimer() {
-            if (questionTimerInterval) {
-                clearInterval(questionTimerInterval);
-                questionTimerInterval = null;
+        function handleQuestionTimeout(isLiveMode) {
+            if (isOptionLocked) return;
+            if (!activeQuestionAutoLock) return;
+
+            lockAllOptionCards();
+            if (isLiveMode) {
+                const choiceToSend = selectedOptionIdx !== null ? selectedOptionIdx : -1;
+                submitLiveAnswer(choiceToSend);
+            } else {
+                const choiceToSend = selectedOptionIdx !== null ? selectedOptionIdx : -1;
+                finishSoloStep(choiceToSend, true);
             }
         }
 
-        function handleQuestionTimeout() {
+        async function handleConfirmAnswer() {
             if (isOptionLocked) return;
+            if (selectedOptionIdx === null) return;
 
-            if (!activeQuestionAutoLock) {
+            lockAllOptionCards();
+            document.getElementById("btn-quiz-next").disabled = true;
+
+            if (entryMode === "room" && activeRoomCode) {
+                await submitLiveAnswer(selectedOptionIdx);
+            } else {
+                finishSoloStep(selectedOptionIdx, false);
+            }
+        }
+
+        async function submitLiveAnswer(chosenIdx) {
+            if (!db || !activeRoomCode) return;
+
+            const q = QUESTIONS[currentQuestionIdx];
+            const isCorrect = chosenIdx === q.correctIndex;
+            const earnedPoints = isCorrect ? q.points : 0;
+
+            try {
+                const playerRef = db.ref(`rooms/${activeRoomCode}/players/${DEVICE_ID}`);
+                const snap = await playerRef.get();
+                const currentData = snap.val() || {
+                    id: DEVICE_ID,
+                    name: playerNickname || "Участник",
+                    score: 0,
+                    correctCount: 0,
+                    answers: []
+                };
+
+                const updatedAnswers = Array.isArray(currentData.answers) ? [...currentData.answers] : [];
+                if (updatedAnswers[currentQuestionIdx] !== undefined) {
+                    return;
+                }
+
+                updatedAnswers[currentQuestionIdx] = chosenIdx;
+                const newScore = (Number(currentData.score) || 0) + earnedPoints;
+                const newCorrectCount = (Number(currentData.correctCount) || 0) + (isCorrect ? 1 : 0);
+
+                await playerRef.update({
+                    answers: updatedAnswers,
+                    score: newScore,
+                    correctCount: newCorrectCount,
+                    lastAnsweredAt: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                document.getElementById("quiz-action-wrap").classList.add("hidden");
+                document.getElementById("live-locked-notice").classList.remove("hidden");
+            } catch (err) {
+                console.error("Ошибка отправки ответа в Firebase:", err);
+                isOptionLocked = false;
+                document.getElementById("btn-quiz-next").disabled = false;
+            }
+        }
+
+        // =====================================================================
+        // 8. СОЛО-РЕЖИМ И ЭКРАН ИТОГОВ
+        // =====================================================================
+        let soloScore = 0;
+        let soloCorrect = 0;
+        let soloAwaitingNext = false;
+
+        function startSoloQuiz(nick) {
+            playerNickname = nick;
+            activeRoomCode = "";
+            soloScore = 0;
+            soloCorrect = 0;
+            currentQuestionIdx = 0;
+            activeQuestionDurationSec = DEFAULT_ROOM_SETTINGS.timerSeconds;
+            activeQuestionNoTimer = false;
+            activeQuestionAutoLock = true;
+            soloAwaitingNext = false;
+
+            showScreen("screen-quiz");
+            renderSoloQuestion(0);
+        }
+
+        function renderSoloQuestion(qIndex) {
+            const q = QUESTIONS[qIndex];
+            currentQuestionIdx = qIndex;
+            selectedOptionIdx = null;
+            isOptionLocked = false;
+            soloAwaitingNext = false;
+
+            document.getElementById("quiz-mode-subtitle").textContent = `Соло-режим • ${playerNickname}`;
+            document.getElementById("q-counter-row").classList.remove("hidden");
+            document.getElementById("q-current-num").textContent = String(qIndex + 1);
+            document.getElementById("q-total-num").textContent = String(QUESTIONS.length);
+            document.getElementById("quiz-progress-bar").style.width = `${((qIndex + 1) / QUESTIONS.length) * 100}%`;
+            document.getElementById("q-title").textContent = q.question;
+
+            document.getElementById("live-locked-notice").classList.add("hidden");
+            document.getElementById("solo-review-box").classList.add("hidden");
+            document.getElementById("quiz-action-wrap").classList.remove("hidden");
+
+            const confirmBtn = document.getElementById("btn-quiz-next");
+            confirmBtn.disabled = true;
+            document.getElementById("btn-quiz-next-text").textContent = "Подтвердить ответ";
+
+            const listEl = document.getElementById("q-options-list");
+            listEl.innerHTML = "";
+
+            q.options.forEach((optText, idx) => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "option-card w-full p-3.5 sm:p-4 rounded-2xl text-left flex items-center gap-3.5";
+                btn.innerHTML = `
+                    <span class="radio-dot">
+                        <span class="w-2 h-2 rounded-full bg-white hidden"></span>
+                    </span>
+                    <span class="text-sm font-semibold text-gray-800 leading-snug">${escapeHtml(optText)}</span>
+                `;
+                btn.onclick = () => selectOption(idx);
+                listEl.appendChild(btn);
+            });
+
+            startQuestionTimer(Date.now(), false);
+        }
+
+        function finishSoloStep(chosenIdx, timedOut) {
+            stopQuestionTimer();
+            const q = QUESTIONS[currentQuestionIdx];
+            const isCorrect = chosenIdx === q.correctIndex;
+            if (isCorrect) {
+                soloScore += q.points;
+                soloCorrect += 1;
+            }
+
+            const cards = document.querySelectorAll("#q-options-list .option-card");
+            cards.forEach((card, idx) => {
+                if (idx === q.correctIndex) {
+                    card.classList.add("correct-review");
+                } else if (idx === chosenIdx && !isCorrect) {
+                    card.classList.add("wrong-review");
+                }
+            });
+
+            const reviewBox = document.getElementById("solo-review-box");
+            const verdictEl = document.getElementById("solo-review-verdict");
+            const noteEl = document.getElementById("solo-review-note");
+
+            reviewBox.classList.remove("hidden");
+            if (isCorrect) {
+                verdictEl.className = "text-xs font-extrabold text-emerald-700";
+                verdictEl.textContent = `Верно! +${q.points} монет`;
+            } else if (timedOut) {
+                verdictEl.className = "text-xs font-extrabold text-red-600";
+                verdictEl.textContent = `Время вышло. Верный ответ: ${q.options[q.correctIndex]}`;
+            } else {
+                verdictEl.className = "text-xs font-extrabold text-red-600";
+                verdictEl.textContent = `Неверно. Правильный вариант: ${q.options[q.correctIndex]}`;
+            }
+            noteEl.textContent = q.speakerNote;
+
+            soloAwaitingNext = true;
+            const confirmBtn = document.getElementById("btn-quiz-next");
+            confirmBtn.disabled = false;
+            document.getElementById("btn-quiz-next-text").textContent =
+                currentQuestionIdx === QUESTIONS.length - 1 ? "Посмотреть итоги" : "Следующий вопрос";
+            confirmBtn.onclick = () => {
+                if (currentQuestionIdx === QUESTIONS.length - 1) {
+                    saveSoloResult(playerNickname, soloScore, soloCorrect);
+                    showSoloResultScreen();
+                    showScreen("screen-result");
+                } else {
+                    confirmBtn.onclick = handleConfirmAnswer;
+                    renderSoloQuestion(currentQuestionIdx + 1);
+                }
+            };
+        }
+
+        function saveSoloResult(name, score, correctCount) {
+            try {
+                const raw = localStorage.getItem(SOLO_STATS_KEY);
+                const list = raw ? JSON.parse(raw) : [];
+                list.unshift({
+                    name,
+                    score,
+                    correctCount,
+                    total: QUESTIONS.length,
+                    date: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
+                });
+                localStorage.setItem(SOLO_STATS_KEY, JSON.stringify(list.slice(0, 30)));
+            } catch (e) {
+                console.warn("Не удалось сохранить соло-результат:", e);
+            }
+        }
+
+        function showSoloResultScreen() {
+            document.getElementById("result-player-name").textContent = `${playerNickname} • Соло`;
+            document.getElementById("result-score").textContent = String(soloScore);
+            document.getElementById("result-correct-count").textContent = `${soloCorrect} из ${QUESTIONS.length}`;
+            document.getElementById("result-leaderboard-section").classList.add("hidden");
+        }
+
+        function showLiveResultScreen(playersObj, showLeaderboard) {
+            const list = Object.values(playersObj || {});
+            const me = playersObj && playersObj[DEVICE_ID] ? playersObj[DEVICE_ID] : {
+                name: playerNickname || "Участник",
+                score: 0,
+                correctCount: 0
+            };
+
+            document.getElementById("result-player-name").textContent = `${me.name} • Комната #${activeRoomCode}`;
+            document.getElementById("result-score").textContent = String(me.score || 0);
+            document.getElementById("result-correct-count").textContent = `${me.correctCount || 0} из ${QUESTIONS.length}`;
+
+            const lbSection = document.getElementById("result-leaderboard-section");
+            const lbContainer = document.getElementById("result-leaderboard");
+            lbContainer.innerHTML = "";
+
+            if (!showLeaderboard) {
+                lbSection.classList.add("hidden");
                 return;
             }
 
-            lockAllOptions();
-
-            if (entryMode === "room") {
-                submitLiveAnswer(-1);
-            } else {
-                selectedOptionIdx = -1;
-                const nextBtn = document.getElementById("btn-quiz-next");
-                nextBtn.disabled = false;
-                document.getElementById("btn-quiz-next-text").textContent =
-                    (currentQuestionIdx === QUESTIONS.length - 1) ? "Время вышло • Итоги" : "Время вышло • Далее";
-            }
-        }
-
-        // =========================================================================
-        // 9. ПОДТВЕРЖДЕНИЕ ОТВЕТА
-        // =========================================================================
-        async function handleConfirmAnswer() {
-            if (selectedOptionIdx === null && !isOptionLocked) return;
-
-            if (entryMode === "room") {
-                const choice = selectedOptionIdx !== null ? selectedOptionIdx : -1;
-                lockAllOptions();
-                await submitLiveAnswer(choice);
-            } else {
-                const choice = selectedOptionIdx !== null ? selectedOptionIdx : -1;
-                playerAnswers[currentQuestionIdx] = choice;
-                stopQuestionTimer();
-
-                if (currentQuestionIdx < QUESTIONS.length - 1) {
-                    currentQuestionIdx++;
-                    renderQuestion(currentQuestionIdx, Date.now(), {
-                        timerSeconds: DEFAULT_ROOM_SETTINGS.timerSeconds,
-                        noTimer: false,
-                        autoLockOnTimeout: true
-                    });
-                } else {
-                    await finishSoloQuiz();
-                }
-            }
-        }
-
-        async function submitLiveAnswer(choiceIdx) {
-            if (!db || !activeRoomCode) return;
-
-            playerAnswers[currentQuestionIdx] = choiceIdx;
-            document.getElementById("quiz-action-wrap").classList.add("hidden");
-            document.getElementById("live-locked-notice").classList.remove("hidden");
-
-            let score = 0;
-            let correctCount = 0;
-            const answersMap = {};
-
-            playerAnswers.forEach((ans, idx) => {
-                if (ans !== null && ans !== undefined && idx < QUESTIONS.length) {
-                    answersMap[idx] = ans;
-                    if (ans === QUESTIONS[idx].correctIndex) {
-                        score += QUESTIONS[idx].points;
-                        correctCount++;
-                    }
-                }
-            });
-
-            await db.ref(`rooms/${activeRoomCode}/players/${DEVICE_ID}`).update({
-                answers: answersMap,
-                score,
-                correctCount
-            });
-        }
-
-        async function finishSoloQuiz() {
-            let score = 0;
-            let correctCount = 0;
-
-            playerAnswers.forEach((ans, idx) => {
-                if (ans === QUESTIONS[idx].correctIndex) {
-                    score += QUESTIONS[idx].points;
-                    correctCount++;
-                }
-            });
-
-            localStorage.setItem("bc_solo_completed_v2", "1");
-
-            if (db) {
-                await db.ref(`solo_results/${DEVICE_ID}`).set({
-                    deviceId: DEVICE_ID,
-                    name: playerNickname,
-                    score,
-                    correctCount,
-                    completedAt: firebase.database.ServerValue.TIMESTAMP
-                });
-
-                const snap = await db.ref("solo_results").once("value");
-                const allSolo = snap.exists() ? Object.values(snap.val()) : [];
-                document.getElementById("result-player-name").textContent = playerNickname;
-                document.getElementById("result-score").textContent = score;
-                document.getElementById("result-correct-count").textContent = `${correctCount} из ${QUESTIONS.length}`;
-                document.getElementById("result-leaderboard-section").classList.remove("hidden");
-                renderLeaderboardList(allSolo);
-            }
-
-            showScreen("screen-result");
-        }
-
-        function showLiveResultScreen(playersObj, showLeaderboard = true) {
-            const list = Object.values(playersObj || {});
-            const me = playersObj[DEVICE_ID] || { name: playerNickname, score: 0, correctCount: 0 };
-
-            document.getElementById("result-player-name").textContent = me.name;
-            document.getElementById("result-score").textContent = me.score || 0;
-            document.getElementById("result-correct-count").textContent = `${me.correctCount || 0} из ${QUESTIONS.length}`;
-            showScreen("screen-result");
-
-            const lbSection = document.getElementById("result-leaderboard-section");
-            if (showLeaderboard === false) {
-                lbSection.classList.add("hidden");
-            } else {
-                lbSection.classList.remove("hidden");
-                renderLeaderboardList(list);
-            }
-        }
-
-        function renderLeaderboardList(list) {
-            const container = document.getElementById("result-leaderboard");
+            lbSection.classList.remove("hidden");
             const sorted = [...list].sort((a, b) => (b.score || 0) - (a.score || 0));
-            container.innerHTML = "";
 
-            sorted.slice(0, 15).forEach((item, idx) => {
-                const isMe = item.deviceId === DEVICE_ID;
+            sorted.forEach((p, idx) => {
+                const isMe = p.id === DEVICE_ID;
                 const row = document.createElement("div");
-                row.className = `p-3 rounded-2xl border flex items-center justify-between ${
-                    isMe ? "bg-[#F3EEFF] border-[#6C3CE9]" : "bg-[#F9F8FD] border-gray-200/70"
+                row.className = `p-3 rounded-2xl border flex items-center justify-between text-xs ${
+                    isMe ? "bg-[#F3EEFF] border-[#C4B5FD] font-bold" : "bg-gray-50 border-gray-100"
                 }`;
                 row.innerHTML = `
                     <div class="flex items-center gap-2.5 min-w-0">
-                        <span class="w-6 h-6 rounded-lg ${idx < 3 ? "bg-[#111827] text-white" : "bg-white text-gray-600 border border-gray-200"} text-xs font-extrabold flex items-center justify-center shrink-0">
+                        <span class="w-6 h-6 rounded-lg ${idx === 0 ? "bg-amber-400 text-white" : "bg-white text-gray-700 border border-gray-200"} flex items-center justify-center font-extrabold shrink-0">
                             ${idx + 1}
                         </span>
-                        <span class="text-xs font-bold text-gray-900 truncate">${escapeHtml(item.name)}</span>
+                        <span class="truncate text-gray-900">${escapeHtml(p.name || "Игрок")}</span>
                     </div>
-                    <span class="text-xs font-extrabold text-[#6C3CE9] shrink-0">${item.score || 0} монет</span>
+                    <span class="font-extrabold text-[#6C3CE9] shrink-0 ml-2">${p.score || 0} монет</span>
                 `;
-                container.appendChild(row);
+                lbContainer.appendChild(row);
             });
         }
 
+        // =====================================================================
+        // 9. ВЫХОД ИЗ КВИЗА И ВОЗВРАТ НА СТАРТОВЫЙ ЭКРАН
+        // =====================================================================
         function confirmExitQuiz() {
             document.getElementById("modal-exit-confirm").classList.remove("hidden");
         }
@@ -1445,36 +1722,36 @@
 
         function performExitQuiz() {
             closeExitModal();
-            stopQuestionTimer();
-            clearActiveSession();
-            cleanupPlayerListeners();
+            clearPlayerSession();
+            detachRoomListeners();
             activeRoomCode = "";
             showScreen("screen-start");
         }
 
         function leaveRoomToStart() {
-            stopQuestionTimer();
-            clearActiveSession();
-            cleanupPlayerListeners();
+            clearPlayerSession();
+            detachRoomListeners();
             activeRoomCode = "";
             showScreen("screen-start");
         }
 
         function returnHomeFromResult() {
-            clearActiveSession();
-            cleanupPlayerListeners();
+            clearPlayerSession();
+            detachRoomListeners();
             activeRoomCode = "";
             showScreen("screen-start");
         }
 
-        // =========================================================================
-        // 10. ПАНЕЛЬ ВЕДУЩЕГО (PIN: 3781) И НАСТРОЙКИ КОМНАТЫ
-        // =========================================================================
+        // =====================================================================
+        // 10. ПАНЕЛЬ ВЕДУЩЕГО (ПИН: 3781), QR-КОД И ПРОЕКТОР
+        // =====================================================================
         function openAdminModal() {
-            document.getElementById("input-admin-pin").value = "";
+            const modal = document.getElementById("modal-admin-pin");
+            const pinInput = document.getElementById("input-admin-pin");
             document.getElementById("admin-pin-error").classList.add("hidden");
-            document.getElementById("modal-admin-pin").classList.remove("hidden");
-            setTimeout(() => document.getElementById("input-admin-pin").focus(), 50);
+            pinInput.value = "";
+            modal.classList.remove("hidden");
+            setTimeout(() => pinInput.focus(), 50);
         }
 
         function closeAdminModal() {
@@ -1482,140 +1759,82 @@
         }
 
         function verifyAdminPin() {
-            const val = document.getElementById("input-admin-pin").value.trim();
-            if (val === ADMIN_PIN) {
+            const pinInput = document.getElementById("input-admin-pin");
+            const errorEl = document.getElementById("admin-pin-error");
+            if (pinInput.value.trim() === ADMIN_PIN) {
+                errorEl.classList.add("hidden");
                 closeAdminModal();
-                localStorage.setItem("bc_host_session_active", "1");
-                openAdminPanelDirectly();
+                openAdminPanel();
             } else {
-                document.getElementById("admin-pin-error").classList.remove("hidden");
+                errorEl.classList.remove("hidden");
+                pinInput.select();
             }
         }
 
-        document.getElementById("input-admin-pin").addEventListener("keydown", (e) => {
-            if (e.key === "Enter") verifyAdminPin();
-        });
-
-        function openAdminPanelDirectly() {
+        function openAdminPanel() {
             showScreen("screen-admin");
-            subscribeToSoloStats();
+            renderSoloStatsInAdmin();
+
             if (currentHostRoomCode && db) {
-                db.ref(`rooms/${currentHostRoomCode}`).once("value").then((snap) => {
-                    if (snap.exists()) {
-                        attachHostRoomListener(currentHostRoomCode);
-                    }
-                });
+                attachHostRoomListener(currentHostRoomCode);
+            } else {
+                document.getElementById("admin-room-code").textContent = "----";
+                document.getElementById("host-controls-box").classList.add("hidden");
+                document.getElementById("btn-copy-link").classList.add("hidden");
+                document.getElementById("btn-fullscreen-qr").classList.add("hidden");
+                document.getElementById("admin-qr-preview-wrap").classList.add("hidden");
             }
         }
 
         function exitAdminPanel() {
-            localStorage.removeItem("bc_host_session_active");
+            stopHostTimer();
             if (hostRoomRef) {
                 hostRoomRef.off();
                 hostRoomRef = null;
             }
-            if (hostTimerInterval) {
-                clearInterval(hostTimerInterval);
-                hostTimerInterval = null;
-            }
             showScreen("screen-start");
         }
 
-        async function createNewLiveRoom() {
-            if (!db) return;
-            const newCode = String(Math.floor(1000 + Math.random() * 9000));
-            currentHostRoomCode = newCode;
-            settingsFormInitializedForRoom = "";
-            localStorage.setItem("bc_host_room_code", newCode);
-
-            const initialSettings = readSettingsFromHostForm();
-
-            await db.ref(`rooms/${newCode}`).set({
-                code: newCode,
-                state: "lobby",
-                currentQuestion: 0,
-                questionStartedAt: 0,
-                questionDurationSec: initialSettings.timerSeconds,
-                questionNoTimer: initialSettings.noTimer,
-                questionAutoLock: initialSettings.autoLockOnTimeout,
-                settings: initialSettings,
-                createdAt: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            attachHostRoomListener(newCode);
+        function getRoomInviteUrl(roomCode) {
+            const url = new URL(window.location.href);
+            url.searchParams.set("room", roomCode);
+            return url.toString();
         }
 
-        function attachHostRoomListener(code) {
-            if (hostRoomRef) hostRoomRef.off();
-            document.getElementById("admin-room-code").textContent = code;
-            document.getElementById("btn-copy-link").classList.remove("hidden");
-            document.getElementById("admin-qr-preview-wrap").classList.remove("hidden");
-            document.getElementById("btn-fullscreen-qr").classList.remove("hidden");
-            document.getElementById("host-controls-box").classList.remove("hidden");
-
-            renderRoomQrCodes(code);
-
-            hostRoomRef = db.ref(`rooms/${code}`);
-            hostRoomRef.on("value", (snap) => {
-                if (!snap.exists()) return;
-                currentHostRoomData = snap.val();
-                const normalizedSettings = normalizeRoomSettings(currentHostRoomData.settings);
-
-                if (settingsFormInitializedForRoom !== code) {
-                    populateSettingsForm(normalizedSettings);
-                    settingsFormInitializedForRoom = code;
-                } else {
-                    updateSettingsBadge(normalizedSettings);
-                }
-
-                renderHostRoomState(currentHostRoomData, normalizedSettings);
-            });
-        }
-
-        function getRoomInviteUrl(code) {
-            const baseUrl = window.location.origin + window.location.pathname;
-            return `${baseUrl}?room=${code}`;
-        }
-
-        function drawQrIntoElement(containerEl, url, sizePx) {
-            if (!containerEl) return;
-            containerEl.innerHTML = "";
-            if (typeof QRCode !== "undefined") {
-                try {
-                    new QRCode(containerEl, {
-                        text: url,
-                        width: sizePx,
-                        height: sizePx,
-                        colorDark: "#111827",
-                        colorLight: "#FFFFFF",
-                        correctLevel: QRCode.CorrectLevel.M
-                    });
-                    return;
-                } catch (e) {
-                    console.warn("QRCode.js fallback:", e);
-                }
+        function renderQrIntoContainer(containerId, text, pixelSize) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            el.innerHTML = "";
+            if (typeof QRCode !== "undefined" && text) {
+                new QRCode(el, {
+                    text: text,
+                    width: pixelSize,
+                    height: pixelSize,
+                    colorDark: "#111827",
+                    colorLight: "#FFFFFF",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
             }
-            const img = document.createElement("img");
-            img.alt = "QR код комнаты";
-            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&margin=4&data=${encodeURIComponent(url)}`;
-            containerEl.appendChild(img);
         }
 
-        function renderRoomQrCodes(code) {
-            if (!code) return;
-            const inviteUrl = getRoomInviteUrl(code);
-            document.getElementById("fullscreen-qr-room-code").textContent = code;
-            drawQrIntoElement(document.getElementById("admin-mini-qr"), inviteUrl, 160);
-            drawQrIntoElement(document.getElementById("fullscreen-qr-target"), inviteUrl, 320);
+        function updateHostQrCodes(roomCode) {
+            if (!roomCode) return;
+            const inviteUrl = getRoomInviteUrl(roomCode);
+            document.getElementById("admin-qr-preview-wrap").classList.remove("hidden");
+            document.getElementById("btn-copy-link").classList.remove("hidden");
+            document.getElementById("btn-fullscreen-qr").classList.remove("hidden");
+            renderQrIntoContainer("admin-mini-qr", inviteUrl, 160);
+            renderQrIntoContainer("fullscreen-qr-target", inviteUrl, 360);
+            document.getElementById("fullscreen-qr-room-code").textContent = roomCode;
         }
 
         function openFullscreenQrModal() {
             if (!currentHostRoomCode) return;
-            renderRoomQrCodes(currentHostRoomCode);
+            updateHostQrCodes(currentHostRoomCode);
             const playersCount = currentHostRoomData && currentHostRoomData.players
                 ? Object.keys(currentHostRoomData.players).length
                 : 0;
-            document.getElementById("fullscreen-qr-players-count").textContent = playersCount;
+            document.getElementById("fullscreen-qr-players-count").textContent = String(playersCount);
             document.getElementById("modal-fullscreen-qr").classList.remove("hidden");
         }
 
@@ -1623,334 +1842,502 @@
             document.getElementById("modal-fullscreen-qr").classList.add("hidden");
         }
 
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape") {
-                closeFullscreenQrModal();
-            }
-        });
-
         function copyInviteLink() {
             if (!currentHostRoomCode) return;
-            const inviteUrl = getRoomInviteUrl(currentHostRoomCode);
-
-            const tempInput = document.createElement("input");
-            tempInput.value = inviteUrl;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-
+            const url = getRoomInviteUrl(currentHostRoomCode);
             const hint = document.getElementById("copy-link-hint");
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).catch(() => fallbackCopy(url));
+            } else {
+                fallbackCopy(url);
+            }
+
             hint.classList.remove("hidden");
             setTimeout(() => hint.classList.add("hidden"), 2500);
         }
 
-        function populateSettingsForm(settings) {
-            const s = normalizeRoomSettings(settings);
-            document.getElementById("setting-no-timer").checked = s.noTimer;
-            document.getElementById("setting-timer-range").value = s.timerSeconds;
-            document.getElementById("setting-timer-seconds").value = s.timerSeconds;
-            document.getElementById("setting-auto-lock").checked = s.autoLockOnTimeout;
-            document.getElementById("setting-allow-late-join").checked = s.allowLateJoin;
-            document.getElementById("setting-strict-protection").checked = s.strictProtection;
-            document.getElementById("setting-show-leaderboard").checked = s.showLeaderboard;
+        function fallbackCopy(text) {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand("copy");
+            } catch (e) {}
+            document.body.removeChild(ta);
+        }
 
-            toggleNoTimerSetting(false);
-            highlightActivePreset(s.noTimer ? null : s.timerSeconds);
-            updateSettingsBadge(s);
+        async function createNewLiveRoom() {
+            if (!db) {
+                showEntryError("База данных Firebase не подключена.");
+                return;
+            }
+
+            const newCode = String(Math.floor(1000 + Math.random() * 9000));
+            currentHostRoomCode = newCode;
+            settingsFormInitializedForRoom = "";
+            hostAnswerRevealed = false;
+            lastHostRevealedKey = "";
+            localStorage.setItem("bc_host_room_code_v3", newCode);
+
+            const initialSettings = { ...DEFAULT_ROOM_SETTINGS };
+
+            await db.ref(`rooms/${newCode}`).set({
+                code: newCode,
+                state: "lobby",
+                currentQuestionIndex: 0,
+                questionStartedAt: 0,
+                questionDurationSec: initialSettings.timerSeconds,
+                questionNoTimer: initialSettings.noTimer,
+                questionAutoLock: initialSettings.autoLockOnTimeout,
+                allowRejoin: true,
+                settings: initialSettings,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            attachHostRoomListener(newCode);
+        }
+
+        function attachHostRoomListener(roomCode) {
+            if (hostRoomRef) {
+                hostRoomRef.off();
+                hostRoomRef = null;
+            }
+
+            document.getElementById("admin-room-code").textContent = roomCode;
+            document.getElementById("settings-room-code-label").textContent = roomCode;
+            updateHostQrCodes(roomCode);
+            document.getElementById("host-controls-box").classList.remove("hidden");
+
+            hostRoomRef = db.ref(`rooms/${roomCode}`);
+            hostRoomRef.on("value", (snap) => {
+                if (!snap.exists()) {
+                    currentHostRoomData = null;
+                    document.getElementById("host-controls-box").classList.add("hidden");
+                    return;
+                }
+                const room = snap.val();
+                currentHostRoomData = room;
+                renderHostRoomDashboard(roomCode, room);
+            });
+        }
+
+        function stopHostTimer() {
+            if (hostTimerInterval) {
+                clearInterval(hostTimerInterval);
+                hostTimerInterval = null;
+            }
+        }
+
+        function toggleHostAnswerReveal() {
+            hostAnswerRevealed = !hostAnswerRevealed;
+            syncHostAnswerSpoilerVisibility();
+        }
+
+        function syncHostAnswerSpoilerVisibility() {
+            const spoilerEl = document.getElementById("host-answer-spoiler");
+            const labelEl = document.getElementById("btn-host-reveal-label");
+            if (!spoilerEl || !labelEl) return;
+
+            if (hostAnswerRevealed) {
+                spoilerEl.classList.remove("hidden");
+                labelEl.textContent = "Скрыть ответ / Разбор";
+            } else {
+                spoilerEl.classList.add("hidden");
+                labelEl.textContent = "Показать ответ / Раскрыть разбор";
+            }
+        }
+
+        function renderHostRoomDashboard(roomCode, room) {
+            const settings = normalizeRoomSettings(room.settings);
+            if (settingsFormInitializedForRoom !== roomCode) {
+                settingsFormInitializedForRoom = roomCode;
+                populateSettingsForm(settings);
+            }
+            updateSettingsBadge(settings);
+
+            const playersObj = room.players || {};
+            const playersList = Object.values(playersObj);
+            document.getElementById("host-players-count").textContent = `${playersList.length} чел.`;
+            document.getElementById("fullscreen-qr-players-count").textContent = String(playersList.length);
+
+            const state = room.state || "lobby";
+            const qIdx = Math.min(Math.max(0, Number(room.currentQuestionIndex) || 0), QUESTIONS.length - 1);
+            const primaryBtn = document.getElementById("btn-host-primary");
+            const repeatBtn = document.getElementById("btn-host-repeat");
+            const finishBtn = document.getElementById("btn-host-finish");
+            const stateLabel = document.getElementById("host-state-label");
+            const timerLabel = document.getElementById("host-timer-label");
+            const speakerCard = document.getElementById("host-speaker-card");
+
+            stopHostTimer();
+
+            if (state === "lobby") {
+                stateLabel.textContent = "Статус: Ожидание в лобби";
+                timerLabel.textContent = settings.noTimer ? "∞" : formatSecondsDisplay(settings.timerSeconds);
+                primaryBtn.textContent = "Запустить 1-й вопрос";
+                repeatBtn.classList.add("hidden");
+                finishBtn.classList.add("hidden");
+                speakerCard.classList.add("hidden");
+            } else if (state === "question") {
+                const q = QUESTIONS[qIdx];
+                const duration = Number(room.questionDurationSec) || settings.timerSeconds;
+                const noTimer = room.questionNoTimer !== undefined ? Boolean(room.questionNoTimer) : settings.noTimer;
+                const startedAt = Number(room.questionStartedAt) || Date.now();
+
+                stateLabel.textContent = `Статус: Вопрос ${qIdx + 1} из ${QUESTIONS.length}`;
+                primaryBtn.textContent = qIdx === QUESTIONS.length - 1 ? "Завершить и показать итоги" : `Следующий вопрос (${qIdx + 2}/${QUESTIONS.length})`;
+                repeatBtn.classList.remove("hidden");
+                finishBtn.classList.remove("hidden");
+
+                const stepKey = `${state}_${qIdx}_${startedAt}`;
+                if (lastHostRevealedKey !== stepKey) {
+                    lastHostRevealedKey = stepKey;
+                    hostAnswerRevealed = false;
+                }
+                syncHostAnswerSpoilerVisibility();
+
+                speakerCard.classList.remove("hidden");
+                const answeredCount = playersList.filter((p) => p.answers && p.answers[qIdx] !== undefined).length;
+                document.getElementById("host-answered-ratio").textContent = `${answeredCount} / ${playersList.length}`;
+                document.getElementById("host-q-preview").textContent = q.question;
+                document.getElementById("host-correct-answer").textContent = q.options[q.correctIndex];
+                document.getElementById("host-speaker-note").textContent = q.speakerNote;
+
+                if (noTimer) {
+                    timerLabel.textContent = "Без таймера";
+                } else {
+                    const updateHostClock = () => {
+                        const rem = Math.max(0, duration - Math.floor((Date.now() - startedAt) / 1000));
+                        timerLabel.textContent = formatSecondsDisplay(rem);
+                    };
+                    updateHostClock();
+                    hostTimerInterval = setInterval(updateHostClock, 250);
+                }
+            } else if (state === "finished") {
+                stateLabel.textContent = "Статус: Игра завершена (Итоги)";
+                timerLabel.textContent = "00:00";
+                primaryBtn.textContent = "Запустить заново (1-й вопрос)";
+                repeatBtn.classList.add("hidden");
+                finishBtn.classList.add("hidden");
+                speakerCard.classList.add("hidden");
+            }
+
+            const playersContainer = document.getElementById("host-players-list");
+            playersContainer.innerHTML = "";
+
+            if (playersList.length === 0) {
+                playersContainer.innerHTML = `<div class="p-3 rounded-xl bg-gray-50 text-xs text-gray-400 text-center">Пока никто не зашёл в комнату</div>`;
+            } else {
+                const sorted = [...playersList].sort((a, b) => (b.score || 0) - (a.score || 0));
+                sorted.forEach((p) => {
+                    const hasAnsweredCurrent = state === "question" && p.answers && p.answers[qIdx] !== undefined;
+                    const row = document.createElement("div");
+                    row.className = "p-2.5 rounded-xl bg-white border border-gray-200 flex items-center justify-between gap-2 text-xs";
+                    row.innerHTML = `
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold text-gray-900 truncate">${escapeHtml(p.name || "Участник")}</div>
+                            <div class="text-[11px] text-gray-500">
+                                ${p.score || 0} монет • Верных: ${p.correctCount || 0}/${QUESTIONS.length}
+                                ${state === "question" ? (hasAnsweredCurrent ? ' • <span class="text-emerald-600 font-bold">Ответил</span>' : ' • <span class="text-amber-600">Думает</span>') : ""}
+                            </div>
+                        </div>
+                        <button type="button" onclick="kickPlayerFromRoom('${roomCode}', '${p.id}')"
+                            class="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-[11px] font-bold text-red-600 shrink-0 transition">
+                            Кик
+                        </button>
+                    `;
+                    playersContainer.appendChild(row);
+                });
+            }
+        }
+
+        async function kickPlayerFromRoom(roomCode, playerId) {
+            if (!db || !roomCode || !playerId) return;
+            await db.ref(`rooms/${roomCode}/banned/${playerId}`).set(true);
+            await db.ref(`rooms/${roomCode}/players/${playerId}`).remove();
+        }
+
+        async function hostNextStep() {
+            if (!db || !currentHostRoomCode || !currentHostRoomData) return;
+            const room = currentHostRoomData;
+            const state = room.state || "lobby";
+            const qIdx = Number(room.currentQuestionIndex) || 0;
+            const settings = normalizeRoomSettings(room.settings);
+
+            hostAnswerRevealed = false;
+            syncHostAnswerSpoilerVisibility();
+
+            if (state === "lobby" || state === "finished") {
+                await db.ref(`rooms/${currentHostRoomCode}`).update({
+                    state: "question",
+                    currentQuestionIndex: 0,
+                    questionStartedAt: Date.now(),
+                    questionDurationSec: settings.timerSeconds,
+                    questionNoTimer: settings.noTimer,
+                    questionAutoLock: settings.autoLockOnTimeout
+                });
+                return;
+            }
+
+            if (state === "question") {
+                if (qIdx + 1 < QUESTIONS.length) {
+                    await db.ref(`rooms/${currentHostRoomCode}`).update({
+                        state: "question",
+                        currentQuestionIndex: qIdx + 1,
+                        questionStartedAt: Date.now(),
+                        questionDurationSec: settings.timerSeconds,
+                        questionNoTimer: settings.noTimer,
+                        questionAutoLock: settings.autoLockOnTimeout
+                    });
+                } else {
+                    await db.ref(`rooms/${currentHostRoomCode}`).update({
+                        state: "finished"
+                    });
+                }
+            }
+        }
+
+        async function hostRepeatQuestion() {
+            if (!db || !currentHostRoomCode || !currentHostRoomData) return;
+            const qIdx = Number(currentHostRoomData.currentQuestionIndex) || 0;
+            const settings = normalizeRoomSettings(currentHostRoomData.settings);
+
+            hostAnswerRevealed = false;
+            syncHostAnswerSpoilerVisibility();
+
+            await db.ref(`rooms/${currentHostRoomCode}`).update({
+                state: "question",
+                currentQuestionIndex: qIdx,
+                questionStartedAt: Date.now(),
+                questionDurationSec: settings.timerSeconds,
+                questionNoTimer: settings.noTimer,
+                questionAutoLock: settings.autoLockOnTimeout
+            });
+        }
+
+        async function hostFinishEarly() {
+            if (!db || !currentHostRoomCode) return;
+            await db.ref(`rooms/${currentHostRoomCode}`).update({
+                state: "finished"
+            });
+        }
+
+        async function hostResetToLobby() {
+            if (!db || !currentHostRoomCode) return;
+            hostAnswerRevealed = false;
+            syncHostAnswerSpoilerVisibility();
+            await db.ref(`rooms/${currentHostRoomCode}`).update({
+                state: "lobby",
+                currentQuestionIndex: 0,
+                questionStartedAt: 0
+            });
+        }
+
+        async function hostClearRoomPlayers() {
+            if (!db || !currentHostRoomCode) return;
+            await db.ref(`rooms/${currentHostRoomCode}/players`).remove();
+            await db.ref(`rooms/${currentHostRoomCode}/banned`).remove();
+        }
+
+        // =====================================================================
+        // 11. УПРАВЛЕНИЕ НАСТРОЙКАМИ КОМНАТЫ (ROOMS/XXXX/SETTINGS)
+        // =====================================================================
+        function setSwitchState(id, active) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.setAttribute("aria-checked", active ? "true" : "false");
+            if (active) btn.classList.add("active");
+            else btn.classList.remove("active");
+        }
+
+        function getSwitchState(id) {
+            const btn = document.getElementById(id);
+            return btn ? btn.getAttribute("aria-checked") === "true" : false;
+        }
+
+        function toggleSwitchControl(id, afterCallback) {
+            const nextVal = !getSwitchState(id);
+            setSwitchState(id, nextVal);
+            if (typeof afterCallback === "function") {
+                afterCallback(nextVal);
+            }
+        }
+
+        function onNoTimerToggled(isNoTimer) {
+            const customBox = document.getElementById("timer-custom-controls");
+            if (isNoTimer) {
+                customBox.classList.add("opacity-45", "pointer-events-none");
+            } else {
+                customBox.classList.remove("opacity-45", "pointer-events-none");
+            }
+            updateSettingsBadge(readSettingsFromHostForm());
+        }
+
+        function applyTimerPreset(sec) {
+            setSwitchState("toggle-no-timer", false);
+            onNoTimerToggled(false);
+            document.getElementById("setting-timer-input").value = String(sec);
+            document.getElementById("setting-timer-slider").value = String(sec);
+            updateSettingsBadge(readSettingsFromHostForm());
+        }
+
+        function syncTimerFromNumberInput(val) {
+            const num = Math.min(300, Math.max(10, Number(val) || 10));
+            document.getElementById("setting-timer-slider").value = String(num);
+            updateSettingsBadge(readSettingsFromHostForm());
+        }
+
+        function syncTimerFromSlider(val) {
+            const num = Math.min(300, Math.max(10, Number(val) || 10));
+            document.getElementById("setting-timer-input").value = String(num);
+            updateSettingsBadge(readSettingsFromHostForm());
+        }
+
+        function populateSettingsForm(settings) {
+            document.getElementById("setting-timer-input").value = String(settings.timerSeconds);
+            document.getElementById("setting-timer-slider").value = String(settings.timerSeconds);
+            setSwitchState("toggle-no-timer", settings.noTimer);
+            setSwitchState("toggle-auto-lock", settings.autoLockOnTimeout);
+            setSwitchState("toggle-allow-late", settings.allowLateJoin);
+            setSwitchState("toggle-strict-protection", settings.strictProtection);
+            setSwitchState("toggle-show-counter", settings.showQuestionCounter);
+            setSwitchState("toggle-show-leaderboard", settings.showLeaderboard);
+            onNoTimerToggled(settings.noTimer);
         }
 
         function readSettingsFromHostForm() {
-            const noTimer = document.getElementById("setting-no-timer").checked;
-            const rawSec = Number(document.getElementById("setting-timer-seconds").value);
+            const rawSec = Number(document.getElementById("setting-timer-input").value);
             const timerSeconds = Number.isFinite(rawSec)
                 ? Math.min(300, Math.max(10, Math.round(rawSec)))
                 : DEFAULT_ROOM_SETTINGS.timerSeconds;
 
             return {
                 timerSeconds,
-                noTimer,
-                autoLockOnTimeout: document.getElementById("setting-auto-lock").checked,
-                allowLateJoin: document.getElementById("setting-allow-late-join").checked,
-                strictProtection: document.getElementById("setting-strict-protection").checked,
-                showLeaderboard: document.getElementById("setting-show-leaderboard").checked
+                noTimer: getSwitchState("toggle-no-timer"),
+                autoLockOnTimeout: getSwitchState("toggle-auto-lock"),
+                allowLateJoin: getSwitchState("toggle-allow-late"),
+                strictProtection: getSwitchState("toggle-strict-protection"),
+                showQuestionCounter: getSwitchState("toggle-show-counter"),
+                showLeaderboard: getSwitchState("toggle-show-leaderboard")
             };
-        }
-
-        function syncTimerInputs(val) {
-            const num = Number(val);
-            if (!Number.isFinite(num)) return;
-            const clamped = Math.min(300, Math.max(10, Math.round(num)));
-            document.getElementById("setting-timer-range").value = clamped;
-            document.getElementById("setting-timer-seconds").value = clamped;
-            highlightActivePreset(clamped);
-            updateSettingsBadge({
-                ...readSettingsFromHostForm(),
-                timerSeconds: clamped
-            });
-        }
-
-        function applyTimerPreset(seconds) {
-            document.getElementById("setting-no-timer").checked = false;
-            toggleNoTimerSetting(false);
-            document.getElementById("setting-timer-range").value = seconds;
-            document.getElementById("setting-timer-seconds").value = seconds;
-            highlightActivePreset(seconds);
-            updateSettingsBadge({
-                ...readSettingsFromHostForm(),
-                timerSeconds: seconds,
-                noTimer: false
-            });
-        }
-
-        function highlightActivePreset(activeSeconds) {
-            document.querySelectorAll(".timer-preset-btn").forEach(btn => {
-                const presetVal = Number(btn.dataset.preset);
-                if (activeSeconds !== null && presetVal === activeSeconds) {
-                    btn.className = "timer-preset-btn py-1.5 rounded-lg border border-[#6C3CE9] bg-[#F3EEFF] text-[11px] font-extrabold text-[#6C3CE9] transition";
-                } else {
-                    btn.className = "timer-preset-btn py-1.5 rounded-lg border border-gray-200 bg-white text-[11px] font-bold text-gray-700 hover:border-[#6C3CE9] transition";
-                }
-            });
-        }
-
-        function toggleNoTimerSetting(shouldUpdateBadge = true) {
-            const noTimer = document.getElementById("setting-no-timer").checked;
-            const customBox = document.getElementById("timer-custom-controls");
-            const presetsRow = document.getElementById("timer-presets-row");
-            if (noTimer) {
-                customBox.classList.add("opacity-40", "pointer-events-none");
-                presetsRow.classList.add("opacity-40", "pointer-events-none");
-                highlightActivePreset(null);
-            } else {
-                customBox.classList.remove("opacity-40", "pointer-events-none");
-                presetsRow.classList.remove("opacity-40", "pointer-events-none");
-                highlightActivePreset(Number(document.getElementById("setting-timer-seconds").value));
-            }
-            if (shouldUpdateBadge) {
-                updateSettingsBadge(readSettingsFromHostForm());
-            }
         }
 
         function updateSettingsBadge(settings) {
             const badge = document.getElementById("room-settings-badge");
+            if (!badge) return;
             badge.textContent = settings.noTimer ? "Без таймера" : `${settings.timerSeconds} сек`;
         }
 
         async function saveRoomSettingsToFirebase() {
             if (!db || !currentHostRoomCode) return;
-            const newSettings = readSettingsFromHostForm();
-            document.getElementById("setting-timer-seconds").value = newSettings.timerSeconds;
-            document.getElementById("setting-timer-range").value = newSettings.timerSeconds;
-
-            await db.ref(`rooms/${currentHostRoomCode}`).update({
-                settings: newSettings,
-                questionDurationSec: newSettings.timerSeconds,
-                questionNoTimer: newSettings.noTimer,
-                questionAutoLock: newSettings.autoLockOnTimeout
-            });
-            updateSettingsBadge(newSettings);
-
-            const hint = document.getElementById("room-settings-saved-hint");
-            hint.classList.remove("hidden");
-            setTimeout(() => hint.classList.add("hidden"), 2200);
-        }
-
-        function renderHostRoomState(room, roomSettings = DEFAULT_ROOM_SETTINGS) {
-            const stateLabel = document.getElementById("host-state-label");
-            const btnPrimary = document.getElementById("btn-host-primary");
-            const btnRepeat = document.getElementById("btn-host-repeat");
-            const btnFinish = document.getElementById("btn-host-finish");
-            const speakerCard = document.getElementById("host-speaker-card");
-
-            const playersObj = room.players || {};
-            const playersList = Object.values(playersObj);
-            document.getElementById("host-players-count").textContent = `${playersList.length} чел.`;
-            document.getElementById("fullscreen-qr-players-count").textContent = playersList.length;
-
-            const listContainer = document.getElementById("host-players-list");
-            if (playersList.length === 0) {
-                listContainer.innerHTML = `
-                    <div class="text-xs text-gray-400 text-center py-5 bg-[#F9F8FD] rounded-2xl">
-                        Ожидаем подключения игроков по коду #${room.code}
-                    </div>
-                `;
-            } else {
-                const sorted = [...playersList].sort((a, b) => (b.score || 0) - (a.score || 0));
-                listContainer.innerHTML = "";
-                sorted.forEach(p => {
-                    const hasAnsweredCurrent = room.state === "question" && p.answers && p.answers[room.currentQuestion] !== undefined;
-                    const item = document.createElement("div");
-                    item.className = "p-3 rounded-xl bg-[#F9F8FD] border border-gray-200/70 flex items-center justify-between gap-2";
-                    item.innerHTML = `
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full ${hasAnsweredCurrent ? "bg-emerald-500" : "bg-gray-300"}"></span>
-                                <span class="text-xs font-bold text-gray-900 truncate">${escapeHtml(p.name)}</span>
-                            </div>
-                            <div class="text-[11px] text-gray-500 mt-0.5">
-                                ${p.score || 0} монет • ${p.correctCount || 0}/${QUESTIONS.length} верных
-                            </div>
-                        </div>
-                        <button type="button" onclick="kickPlayerFromRoom('${p.deviceId}')" class="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-bold transition shrink-0">
-                            Кик
-                        </button>
-                    `;
-                    listContainer.appendChild(item);
-                });
-            }
-
-            if (hostTimerInterval) clearInterval(hostTimerInterval);
-
-            const qDuration = Number.isFinite(Number(room.questionDurationSec))
-                ? Number(room.questionDurationSec)
-                : roomSettings.timerSeconds;
-            const qNoTimer = typeof room.questionNoTimer === "boolean"
-                ? room.questionNoTimer
-                : roomSettings.noTimer;
-
-            if (room.state === "lobby") {
-                stateLabel.textContent = "Статус: Ожидание в лобби";
-                document.getElementById("host-timer-label").textContent = qNoTimer ? "Без лимита" : formatSecondsDisplay(qDuration);
-                btnPrimary.textContent = "Запустить 1-й вопрос";
-                btnPrimary.classList.remove("hidden");
-                btnRepeat.classList.add("hidden");
-                btnFinish.classList.add("hidden");
-                speakerCard.classList.add("hidden");
-            } else if (room.state === "question") {
-                const qIdx = Math.min(room.currentQuestion || 0, QUESTIONS.length - 1);
-                const q = QUESTIONS[qIdx];
-                stateLabel.textContent = `Вопрос ${qIdx + 1} из ${QUESTIONS.length}`;
-
-                btnPrimary.classList.remove("hidden");
-                btnPrimary.textContent = (qIdx < QUESTIONS.length - 1)
-                    ? `Следующий (${qIdx + 2}-й) →`
-                    : "Показать финальные итоги";
-                btnRepeat.classList.remove("hidden");
-                btnFinish.classList.remove("hidden");
-
-                speakerCard.classList.remove("hidden");
-                const answeredCount = playersList.filter(p => p.answers && p.answers[qIdx] !== undefined).length;
-                document.getElementById("host-answered-ratio").textContent = `${answeredCount} / ${playersList.length}`;
-                document.getElementById("host-q-preview").textContent = q.question;
-                document.getElementById("host-correct-answer").textContent = q.options[q.correctIndex];
-                document.getElementById("host-speaker-note").textContent = q.speakerNote;
-
-                if (qNoTimer) {
-                    document.getElementById("host-timer-label").textContent = "Без лимита";
-                } else {
-                    const updateHostClock = () => {
-                        const elapsed = Math.floor((Date.now() - (room.questionStartedAt || Date.now())) / 1000);
-                        const rem = Math.max(0, qDuration - elapsed);
-                        document.getElementById("host-timer-label").textContent = formatSecondsDisplay(rem);
-                    };
-                    updateHostClock();
-                    hostTimerInterval = setInterval(updateHostClock, 250);
-                }
-            } else if (room.state === "finished") {
-                stateLabel.textContent = "Статус: Игра завершена";
-                document.getElementById("host-timer-label").textContent = "00:00";
-                btnPrimary.textContent = "Вернуть всех в лобби";
-                btnRepeat.classList.add("hidden");
-                btnFinish.classList.add("hidden");
-                speakerCard.classList.add("hidden");
-            }
-        }
-
-        async function hostNextStep() {
-            if (!db || !currentHostRoomCode || !currentHostRoomData) return;
-            const ref = db.ref(`rooms/${currentHostRoomCode}`);
             const settings = readSettingsFromHostForm();
+            document.getElementById("setting-timer-input").value = String(settings.timerSeconds);
+            document.getElementById("setting-timer-slider").value = String(settings.timerSeconds);
 
-            if (currentHostRoomData.state === "lobby") {
-                await ref.update({
-                    state: "question",
-                    currentQuestion: 0,
-                    questionStartedAt: Date.now(),
-                    questionDurationSec: settings.timerSeconds,
-                    questionNoTimer: settings.noTimer,
-                    questionAutoLock: settings.autoLockOnTimeout,
-                    settings
-                });
-            } else if (currentHostRoomData.state === "question") {
-                const nextIdx = (currentHostRoomData.currentQuestion || 0) + 1;
-                if (nextIdx < QUESTIONS.length) {
-                    await ref.update({
-                        state: "question",
-                        currentQuestion: nextIdx,
-                        questionStartedAt: Date.now(),
-                        questionDurationSec: settings.timerSeconds,
-                        questionNoTimer: settings.noTimer,
-                        questionAutoLock: settings.autoLockOnTimeout,
-                        settings
-                    });
-                } else {
-                    await ref.update({ state: "finished", settings });
-                }
-            } else if (currentHostRoomData.state === "finished") {
-                await ref.update({
-                    state: "lobby",
-                    currentQuestion: 0,
-                    questionStartedAt: 0,
-                    settings
-                });
-            }
-        }
-
-        async function hostRepeatQuestion() {
-            if (!db || !currentHostRoomCode) return;
-            const settings = readSettingsFromHostForm();
+            await db.ref(`rooms/${currentHostRoomCode}/settings`).set(settings);
             await db.ref(`rooms/${currentHostRoomCode}`).update({
-                questionStartedAt: Date.now(),
                 questionDurationSec: settings.timerSeconds,
                 questionNoTimer: settings.noTimer,
-                questionAutoLock: settings.autoLockOnTimeout,
-                settings
+                questionAutoLock: settings.autoLockOnTimeout
+            });
+
+            updateSettingsBadge(settings);
+            const statusEl = document.getElementById("settings-save-status");
+            statusEl.classList.remove("hidden");
+            setTimeout(() => statusEl.classList.add("hidden"), 2200);
+        }
+
+        // =====================================================================
+        // 12. СОЛО-СТАТИСТИКА В АДМИНКЕ И ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // =====================================================================
+        function renderSoloStatsInAdmin() {
+            let list = [];
+            try {
+                const raw = localStorage.getItem(SOLO_STATS_KEY);
+                list = raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                list = [];
+            }
+
+            document.getElementById("solo-stats-count").textContent = String(list.length);
+            const container = document.getElementById("admin-solo-list");
+            container.innerHTML = "";
+
+            if (list.length === 0) {
+                container.innerHTML = `<div class="text-[11px] text-gray-400">Соло-результатов пока нет</div>`;
+                return;
+            }
+
+            list.slice(0, 8).forEach((item) => {
+                const div = document.createElement("div");
+                div.className = "px-3 py-2 rounded-xl bg-gray-50 flex items-center justify-between text-xs";
+                div.innerHTML = `
+                    <span class="font-semibold text-gray-800 truncate">${escapeHtml(item.name)} <span class="text-[10px] text-gray-400">(${item.date || ""})</span></span>
+                    <span class="font-bold text-[#6C3CE9] shrink-0 ml-2">${item.score} монет (${item.correctCount}/${item.total})</span>
+                `;
+                container.appendChild(div);
             });
         }
 
-        async function hostFinishEarly() {
-            if (!db || !currentHostRoomCode) return;
-            await db.ref(`rooms/${currentHostRoomCode}`).update({ state: "finished" });
+        function clearSoloStats() {
+            localStorage.removeItem(SOLO_STATS_KEY);
+            renderSoloStatsInAdmin();
         }
 
-        async function kickPlayerFromRoom(targetDeviceId) {
-            if (!db || !currentHostRoomCode || !targetDeviceId) return;
-            await db.ref(`rooms/${currentHostRoomCode}/banned/${targetDeviceId}`).set(true);
-            await db.ref(`rooms/${currentHostRoomCode}/players/${targetDeviceId}`).remove();
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
 
-        function subscribeToSoloStats() {
-            if (!db) return;
-            db.ref("solo_results").on("value", (snap) => {
-                const container = document.getElementById("admin-solo-list");
-                const countEl = document.getElementById("solo-stats-count");
-                if (!snap.exists()) {
-                    countEl.textContent = "0";
-                    container.innerHTML = `<div class="text-xs text-gray-400 py-2">Пока никто не проходил соло-тест</div>`;
-                    return;
+        // Закрытие полноэкранного QR по клавише Escape
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                const qrModal = document.getElementById("modal-fullscreen-qr");
+                if (qrModal && !qrModal.classList.contains("hidden")) {
+                    closeFullscreenQrModal();
                 }
-                const list = Object.values(snap.val()).sort((a, b) => (b.score || 0) - (a.score || 0));
-                countEl.textContent = list.length;
-                container.innerHTML = "";
-                list.forEach(item => {
-                    const div = document.createElement("div");
-                    div.className = "p-2.5 rounded-xl bg-[#F9F8FD] flex items-center justify-between text-xs";
-                    div.innerHTML = `
-                        <span class="font-bold text-gray-800 truncate">${escapeHtml(item.name)}</span>
-                        <span class="font-extrabold text-[#6C3CE9] shrink-0">${item.score || 0} монет (${item.correctCount || 0}/${QUESTIONS.length})</span>
-                    `;
-                    container.appendChild(div);
-                });
-            });
-        }
+            }
+        });
 
-        async function clearSoloStats() {
-            if (!db) return;
-            await db.ref("solo_results").remove();
-        }
+        // =====================================================================
+        // 13. СТАРТ ПРИ ЗАГРУЗКЕ: ПОДКЛЮЧЕНИЕ ПО ?room=XXXX ИЛИ АВТО-ВОЗВРАТ
+        // =====================================================================
+        window.addEventListener("DOMContentLoaded", async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryRoom = (urlParams.get("room") || "").replace(/\D/g, "").slice(0, 4);
 
-        window.addEventListener("load", restoreSessionOnLoad);
+            if (queryRoom.length === 4) {
+                switchEntryMode("room");
+                document.getElementById("input-room-code").value = queryRoom;
+            }
+
+            const savedSession = loadPlayerSession();
+            if (savedSession && savedSession.mode === "room" && savedSession.roomCode && db) {
+                try {
+                    const roomSnap = await db.ref(`rooms/${savedSession.roomCode}`).get();
+                    if (roomSnap.exists()) {
+                        const banSnap = await db.ref(`rooms/${savedSession.roomCode}/banned/${DEVICE_ID}`).get();
+                        if (!banSnap.exists()) {
+                            playerNickname = savedSession.nickname || "";
+                            activeRoomCode = savedSession.roomCode;
+                            subscribeToRoom(savedSession.roomCode);
+                            return;
+                        }
+                    }
+                    clearPlayerSession();
+                } catch (err) {
+                    console.warn("Не удалось восстановить сессию автоматически:", err);
+                }
+            }
+
+            showScreen("screen-start");
+        });
     </script>
 </body>
 </html>
